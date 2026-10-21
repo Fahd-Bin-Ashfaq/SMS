@@ -1,0 +1,20 @@
+{% extends "assessments/base.html" %}
+{% block title %}Marks review{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Marks review</h1>
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead><tr><th>Student</th><th>Exam</th><th>Class</th><th>Subject</th><th>Marks</th></tr></thead>
+    <tbody>
+    {% for mark in marks %}
+      <tr>
+        <td>{{ mark.student }}</td><td>{{ mark.exam.name }}</td><td>{{ mark.exam.classroom }}</td>
+        <td>{{ mark.subject }}</td><td>{{ mark.marks_awarded }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="text-muted">No marks have been entered.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "homework/base.html" %}
+
+{% block title %}My homework assignments{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">Homework</h1>
+    <a class="btn btn-primary" href="{% url 'homework:create' %}">Assign homework</a>
+  </div>
+  {% include "homework/_list.html" %}
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ page_title }} · School Portal{% endblock %}
+{% block page_heading %}Academics{% endblock %}
+{% block content %}
+<section>
+  <header class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">{{ page_title }}</h1>
+    {% if can_manage %}<a class="btn btn-primary" href="{% url create_url_name %}">Add {{ create_label }}</a>{% endif %}
+  </header>
+  <nav class="nav nav-pills mb-4" aria-label="Academic setup">
+    <a class="nav-link" href="{% url 'academics:classroom_list' %}">Classes</a>
+    <a class="nav-link" href="{% url 'academics:student_list' %}">Students</a>
+    <a class="nav-link" href="{% url 'academics:academic_year_list' %}">Academic years</a>
+  </nav>
+  {% if object_list %}
+    <div class="table-responsive"><table class="table table-striped align-middle">
+      <thead><tr>
+        <th>Record</th><th>Details</th><th>Status</th>{% if can_manage %}<th>Actions</th>{% endif %}
+      </tr></thead>
+      <tbody>
+      {% for object in object_list %}
+        <tr>
+          <td>
+            {% if object.admission_number %}{{ object.admission_number }} — {{ object.first_name }} {{ object.last_name }}
+            {% elif object.start_date %}{{ object.name }}
+            {% else %}{{ object.name }} {{ object.section }}{% endif %}
+          </td>
+          <td>
+            {% if object.admission_number %}Guardian: {{ object.guardian_name|default:"—" }}
+            {% elif object.start_date %}{{ object.start_date }} to {{ object.end_date }}
+            {% else %}{{ object.academic_year }}{% endif %}
+          </td>
+          <td>
+            {% if object.admission_number %}{% if object.is_active %}Active{% else %}Inactive{% endif %}
+            {% elif object.start_date %}{% if object.is_active %}Active{% else %}Inactive{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          {% if can_manage %}
+          <td class="text-nowrap">
+            {% if object.admission_number %}
+              <a href="{% url 'academics:student_update' object.pk %}">Edit</a> ·
+              <a href="{% url 'academics:student_delete' object.pk %}">Delete</a>
+            {% elif object.start_date %}
+              <a href="{% url 'academics:academic_year_update' object.pk %}">Edit</a> ·
+              <a href="{% url 'academics:academic_year_delete' object.pk %}">Delete</a>
+            {% else %}
+              <a href="{% url 'academics:classroom_update' object.pk %}">Edit</a> ·
+              <a href="{% url 'academics:classroom_delete' object.pk %}">Delete</a>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <p class="text-muted">No records are available.</p>
+  {% endif %}
+</section>
+{% endblock %}

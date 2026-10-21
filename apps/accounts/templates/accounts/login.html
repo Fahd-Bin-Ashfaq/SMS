@@ -1,0 +1,25 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Staff sign in{% endblock %}
+
+{% block content %}
+  <h1>Welcome back</h1>
+  <p>Sign in to continue to your school portal.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+      {{ form.username.label_tag }}
+      {{ form.username }}
+      {{ form.username.errors }}
+    </div>
+    <div>
+      {{ form.password.label_tag }}
+      {{ form.password }}
+      {{ form.password.errors }}
+    </div>
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button type="submit">Sign in</button>
+  </form>
+  <p style="margin:18px 0 0;text-align:center"><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
+{% endblock %}

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if role == "teacher" %}Teacher{% elif role == "student" %}Student{% else %}School{% endif %} dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172033;
+      background: #f4f7fb;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .shell { min-height: 100vh; }
+    .sidebar {
+      position: fixed; inset: 0 auto 0 0; z-index: 2; display: flex; width: 248px;
+      flex-direction: column; padding: 25px 18px; background: #152544; color: #d7e0f1;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px 32px; color: #fff; font-size: 17px; font-weight: 750; }
+    .brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: #6e7cf4; color: #fff; font-size: 19px; }
+    .nav-label { padding: 10px 10px 8px; color: #8392ad; font-size: 10px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    .nav-link { display: flex; align-items: center; gap: 12px; margin: 3px 0; padding: 11px 12px; border-radius: 10px; color: #bdc9dc; font-size: 13px; font-weight: 600; }
+    .nav-link:hover, .nav-link.active { background: #26385a; color: #fff; }
+    .nav-icon { width: 20px; text-align: center; font-size: 16px; }
+    .sidebar-note { margin-top: auto; padding: 13px; border: 1px solid #344464; border-radius: 12px; color: #aab8ce; font-size: 11px; line-height: 1.6; }
+    .sidebar-note strong { display: block; margin-bottom: 3px; color: #fff; font-size: 12px; }
+    .workspace { min-height: 100vh; margin-left: 248px; }
+    .topbar { display: flex; min-height: 74px; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 34px; border-bottom: 1px solid #e8edf4; background: #fff; }
+    .breadcrumbs { color: #8995a8; font-size: 12px; }
+    .breadcrumbs strong { color: #283752; font-weight: 650; }
+    .top-actions { display: flex; align-items: center; gap: 16px; }
+    .date-pill { padding: 8px 11px; border: 1px solid #edf0f5; border-radius: 9px; color: #68758a; font-size: 11px; }
+    .profile { display: flex; align-items: center; gap: 10px; }
+    .avatar { display: grid; width: 37px; height: 37px; place-items: center; border-radius: 50%; background: #e8eafe; color: #545ed3; font-size: 12px; font-weight: 750; }
+    .profile-name { color: #283752; font-size: 12px; font-weight: 700; }
+    .profile-role { margin-top: 3px; color: #8995a8; font-size: 10px; }
+    .logout { padding: 7px 10px; border: 1px solid #e8edf4; border-radius: 8px; background: #fff; color: #68758a; font-size: 11px; cursor: pointer; }
+    main { max-width: 1440px; margin: auto; padding: 32px 34px 44px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    h1 { margin: 0; color: #1c2940; font-size: 25px; letter-spacing: -.04em; }
+    .subtitle { margin: 7px 0 0; color: #8a96a8; font-size: 12px; }
+    .role-pill { padding: 7px 11px; border-radius: 20px; background: #eef0ff; color: #5a65d6; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+    .welcome { display: flex; min-height: 145px; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 21px; padding: 25px 28px; overflow: hidden; border-radius: 16px; background: linear-gradient(110deg, #5c69e8, #7883f4 68%, #9299ff); color: #fff; }
+    .welcome h2 { margin: 0 0 7px; font-size: 21px; letter-spacing: -.03em; }
+    .welcome p { max-width: 570px; margin: 0; color: #e4e7ff; font-size: 12px; line-height: 1.6; }
+    .welcome-icon { display: grid; width: 90px; height: 90px; flex: 0 0 90px; place-items: center; border: 1px solid #ffffff40; border-radius: 28px; background: #ffffff1c; font-size: 39px; transform: rotate(5deg); }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .card, .panel { border: 1px solid #edf0f5; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px #182c4c08; }
+    .metric { min-height: 125px; padding: 17px; }
+    .metric-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #8995a8; font-size: 11px; }
+    .metric-icon { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 10px; background: #eff0ff; color: #626de1; font-size: 16px; }
+    .metric-value { margin-top: 10px; color: #1d2a42; font-size: 25px; font-weight: 750; letter-spacing: -.04em; }
+    .metric-caption { margin-top: 4px; color: #9aa5b4; font-size: 10px; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr); gap: 15px; margin-top: 16px; }
+    .panel { padding: 19px; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    .panel-heading h2 { margin: 0; color: #25334b; font-size: 14px; }
+    .panel-heading span { color: #9aa5b4; font-size: 10px; }
+    .chart { display: flex; height: 190px; align-items: end; justify-content: space-around; gap: 17px; padding: 12px 8px 0; border-bottom: 1px solid #edf0f5; }
+    .bar-group { display: flex; width: 19%; height: 100%; flex-direction: column; align-items: center; justify-content: end; gap: 8px; }
+    .bar-value { color: #718097; font-size: 10px; }
+    .bar { width: 100%; max-width: 48px; min-height: 4px; border-radius: 7px 7px 2px 2px; background: linear-gradient(180deg, #8b94f6, #606de6); }
+    .bar.absent { background: #f3a7a8; }
+    .bar.late { background: #f4c66c; }
+    .bar-label { padding-bottom: 9px; color: #8793a5; font-size: 10px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 13px; color: #8491a3; font-size: 10px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #6874e9; }
+    .dot.absent { background: #f3a7a8; }.dot.late { background: #f4c66c; }
+    .list { display: grid; gap: 11px; }
+    .list-item { display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid #f0f2f6; border-radius: 10px; }
+    .list-icon { display: grid; width: 35px; height: 35px; flex: 0 0 35px; place-items: center; border-radius: 10px; background: #f0f2ff; color: #6570e4; }
+    .list-main { min-width: 0; flex: 1; }
+    .list-title { overflow: hidden; color: #35435a; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .list-meta { margin-top: 4px; color: #96a1b0; font-size: 10px; }
+    .empty { padding: 20px 10px; color: #96a1b0; font-size: 11px; text-align: center; }
+    .class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+    .class-card { padding: 15px; border: 1px solid #edf0f5; border-radius: 11px; background: #fff; }
+    .class-card strong { display: block; color: #34425a; font-size: 12px; }
+    .class-card span { display: block; margin-top: 6px; color: #929eae; font-size: 10px; }
+    .lower-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 15px; }
+    .student-info { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .student-info span { padding: 7px 10px; border-radius: 8px; background: #f4f6fa; color: #68758a; font-size: 10px; }
+    .no-print { margin-top: 16px; color: #97a2b1; font-size: 11px; }
+    .no-print a { color: #5867db; font-weight: 650; }
+    @media (max-width: 1000px) {
+      .sidebar { width: 205px; }.workspace { margin-left: 205px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .sidebar { position: static; width: auto; padding: 12px 14px; }.brand { padding: 0 5px 12px; }
+      .nav-label, .sidebar-note { display: none; }.sidebar nav { display: flex; gap: 4px; overflow-x: auto; }
+      .nav-link { flex: 0 0 auto; padding: 9px; }.nav-icon { display: none; }.workspace { margin-left: 0; }
+      .topbar { min-height: 60px; padding: 10px 16px; }main { padding: 22px 15px 32px; }
+      .date-pill { display: none; }.content-grid, .lower-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 430px) {
+      .metrics { gap: 9px; }.metric { min-height: 112px; padding: 12px; }.metric-value { font-size: 22px; }
+      .welcome { min-height: 125px; padding: 19px; }.welcome-icon { width: 58px; height: 58px; flex-basis: 58px; border-radius: 19px; font-size: 27px; }
+      .page-heading { align-items: start; flex-direction: column; }.profile-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+    }
+    @media print {
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .workspace { margin: 0; }main { max-width: none; padding: 0; }.card, .panel { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="{% url 'dashboard:index' %}"><span class="brand-mark">S</span><span>School Portal</span></a>
+      <div class="nav-label">Workspace</div>
+      <nav aria-label="Main navigation">
+        <a class="nav-link active" href="{% url 'dashboard:index' %}"><span class="nav-icon">⌂</span>Dashboard</a>
+        {% if role != "student" %}<a class="nav-link" href="{% url 'dashboard:reports' %}"><span class="nav-icon">▤</span>Reports</a>{% endif %}
+        {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/academics/"><span class="nav-icon">▦</span>Academics</a>{% endif %}
+        {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/attendance/"><span class="nav-icon">◷</span>Attendance</a>{% endif %}
+        {% if role == "principal" %}<a class="nav-link" href="/assessments/"><span class="nav-icon">▧</span>Assessments</a>{% endif %}
+        {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/homework/"><span class="nav-icon">▣</span>Homework</a>{% endif %}
+        {% if role == "principal" or role == "office" %}<a class="nav-link" href="/fees/"><span class="nav-icon">＄</span>Fees</a>{% endif %}
+      </nav>
+      <div class="sidebar-note"><strong>School Management</strong>Demo workspace · Sample records only</div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="breadcrumbs">School Portal <span aria-hidden="true">/</span> <strong>Dashboard</strong></div>
+        <div class="top-actions">
+          <div class="date-pill">{{ today|date:"D, j M Y" }}</div>
+          <div class="profile"><div class="avatar">{% if user.get_full_name %}{{ user.get_full_name|slice:":1"|upper }}{% else %}{{ user.username|slice:":1"|upper }}{% endif %}</div><div><div class="profile-name">{{ user.get_full_name|default:user.username }}</div><div class="profile-role">{{ user.get_role_display }}</div></div></div>
+          <form class="no-print" action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="logout" type="submit">Sign out</button></form>
+        </div>
+      </header>
+      <main>
+        <div class="page-heading">
+          <div><h1>{% if role == "teacher" %}Teacher dashboard{% elif role == "student" %}Student dashboard{% else %}School dashboard{% endif %}</h1><p class="subtitle">A quick overview of {% if role == "teacher" %}your classes and teaching activity{% elif role == "student" %}your learning and class activity{% elif role == "office" %}school records{% else %}school activity and performance{% endif %}.</p></div>
+          <span class="role-pill">{{ user.get_role_display }}</span>
+        </div>
+        <section class="welcome">
+          <div>
+            <h2>{% if role == "student" %}Welcome, {{ student_profile.first_name|default:user.first_name|default:user.username }}!{% elif role == "teacher" %}Good to see you, {{ user.first_name|default:user.username }}!{% else %}Welcome, {{ user.first_name|default:user.username }}!{% endif %}</h2>
+            <p>{% if role == "student" %}Here is your personal school overview. Your information is only visible to your account.{% elif role == "teacher" %}Your dashboard brings your assigned classes, attendance and upcoming homework together.{% else %}Track key school activity, attendance and upcoming learning at a glance.{% endif %}</p>
+          </div>
+          <div class="welcome-icon" aria-hidden="true">{% if role == "student" %}✎{% elif role == "teacher" %}▤{% else %}⌂{% endif %}</div>
+        </section>
+        <section class="metrics" aria-label="Summary">
+          <article class="card metric"><div class="metric-top"><span>{% if role == "student" %}My enrollment{% elif role == "teacher" %}My students{% else %}Active students{% endif %}</span><span class="metric-icon">♙</span></div><div class="metric-value">{{ active_students }}</div><div class="metric-caption">{% if role == "student" %}linked to your account{% elif role == "teacher" %}in your assigned classes{% else %}currently enrolled{% endif %}</div></article>
+          {% if role == "principal" or role == "office" %}<article class="card metric"><div class="metric-top"><span>Teachers</span><span class="metric-icon">♧</span></div><div class="metric-value">{{ active_teachers }}</div><div class="metric-caption">active teaching staff</div></article>{% endif %}
+          {% if role == "teacher" or role == "student" %}<article class="card metric"><div class="metric-top"><span>{% if role == "student" %}My class{% else %}My classes{% endif %}</span><span class="metric-icon">▦</span></div><div class="metric-value">{{ class_count }}</div><div class="metric-caption">in the active academic year</div></article>{% endif %}
+          <article class="card metric"><div class="metric-top"><span>{% if role == "student" %}My attendance today{% else %}Today's attendance{% endif %}</span><span class="metric-icon">◷</span></div><div class="metric-value">{{ attendance.total }}</div><div class="metric-caption">Present {{ attendance.present }} · Absent {{ attendance.absent }} · Late {{ attendance.late }}</div></article>
+          {% if role == "principal" or role == "office" %}<article class="card metric"><div class="metric-top"><span>Fee balance</span><span class="metric-icon">＄</span></div><div class="metric-value">{{ fee_balance|floatformat:2 }}</div><div class="metric-caption">Charged {{ fee_charged|floatformat:2 }} · Paid {{ fee_paid|floatformat:2 }}</div></article>{% endif %}
+        </section>
+        <div class="content-grid">
+          <section class="panel">
+            <div class="panel-heading"><h2>{% if role == "student" %}My attendance today{% else %}Attendance overview{% endif %}</h2><span>{{ today|date:"j F Y" }}</span></div>
+            <div class="chart" role="img" aria-label="Attendance counts: {{ attendance.present }} present, {{ attendance.absent }} absent and {{ attendance.late }} late">
+              <div class="bar-group"><span class="bar-value">{{ attendance.present }}</span><div class="bar" style="height:{% if attendance.total %}{% widthratio attendance.present attendance.total 135 %}{% else %}3{% endif %}px; max-height:135px"></div><span class="bar-label">Present</span></div>
+              <div class="bar-group"><span class="bar-value">{{ attendance.absent }}</span><div class="bar absent" style="height:{% if attendance.total %}{% widthratio attendance.absent attendance.total 135 %}{% else %}3{% endif %}px; max-height:135px"></div><span class="bar-label">Absent</span></div>
+              <div class="bar-group"><span class="bar-value">{{ attendance.late }}</span><div class="bar late" style="height:{% if attendance.total %}{% widthratio attendance.late attendance.total 135 %}{% else %}3{% endif %}px; max-height:135px"></div><span class="bar-label">Late</span></div>
+            </div>
+            <div class="legend"><span><i class="dot"></i>Present</span><span><i class="dot absent"></i>Absent</span><span><i class="dot late"></i>Late</span></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><h2>Upcoming homework</h2><span>Next due</span></div>
+            {% if upcoming_homework %}<div class="list">{% for item in upcoming_homework %}<div class="list-item"><div class="list-icon">▣</div><div class="list-main"><div class="list-title">{{ item.title }}</div><div class="list-meta">{{ item.subject }} · {{ item.classroom }}</div></div><div class="list-meta">{{ item.due_date|date:"M j" }}</div></div>{% endfor %}</div>{% else %}<div class="empty">No upcoming homework found.</div>{% endif %}
+          </section>
+        </div>
+        {% if classrooms %}
+        <section class="panel" style="margin-top:15px">
+          <div class="panel-heading"><h2>{% if role == "student" %}My classroom{% elif role == "teacher" %}My classrooms{% else %}Classrooms{% endif %}</h2><span>{{ class_count }} active</span></div>
+          <div class="class-grid">{% for classroom in classrooms %}<article class="class-card"><strong>{{ classroom.name }} · Section {{ classroom.section }}</strong><span>{{ classroom.academic_year.name }}</span></article>{% endfor %}</div>
+        </section>
+        {% endif %}
+        {% if role == "student" %}
+        <div class="lower-grid">
+          <section class="panel"><div class="panel-heading"><h2>My student profile</h2><span>Private</span></div>{% if student_profile %}<div class="student-info"><span>Admission no. {{ student_profile.admission_number }}</span><span>{{ student_profile.first_name }} {{ student_profile.last_name }}</span></div>{% else %}<div class="empty">No student profile is linked to this login yet.</div>{% endif %}</section>
+          <section class="panel"><div class="panel-heading"><h2>Recent results</h2><span>Latest marks</span></div>{% if student_results %}<div class="list">{% for result in student_results %}<div class="list-item"><div class="list-icon">▧</div><div class="list-main"><div class="list-title">{{ result.exam.name }} · {{ result.subject.name }}</div><div class="list-meta">{{ result.exam.date|date:"M j, Y" }}</div></div><strong>{{ result.marks_awarded }}</strong></div>{% endfor %}</div>{% else %}<div class="empty">No result records yet.</div>{% endif %}</section>
+        </div>
+        {% elif role == "principal" %}
+        <section class="panel" style="margin-top:15px"><div class="panel-heading"><h2>Recent exams</h2><span>Latest school assessments</span></div>{% if recent_exams %}<div class="list">{% for exam in recent_exams %}<div class="list-item"><div class="list-icon">▧</div><div class="list-main"><div class="list-title">{{ exam.name }}</div><div class="list-meta">{{ exam.classroom }}{% if exam.date %} · {{ exam.date|date:"M j, Y" }}{% endif %}</div></div><div class="list-meta">{% if exam.dashboard_result_count %}{{ exam.dashboard_result_count }} results · avg {{ exam.dashboard_average_score|floatformat:1 }}{% endif %}</div></div>{% endfor %}</div>{% else %}<div class="empty">No exam records found.</div>{% endif %}</section>
+        {% endif %}
+        {% if role == "principal" or role == "office" %}<p class="no-print"><a href="{% url 'dashboard:reports' %}">Open filtered report</a> · <button class="logout" type="button" onclick="window.print()">Print dashboard</button></p>{% endif %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>

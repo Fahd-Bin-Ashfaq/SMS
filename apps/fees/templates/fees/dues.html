@@ -1,0 +1,26 @@
+{% extends "fees/base.html" %}
+{% block title %}Outstanding dues{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Outstanding dues</h1>
+  <a class="btn btn-primary" href="{% url 'fees:charge-create' %}">Add charge</a>
+</div>
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead><tr><th>Student</th><th>Admission no.</th><th>Charged</th><th>Paid</th><th>Outstanding</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><a href="{% url 'fees:student-account' row.student.pk %}">{{ row.student.first_name }} {{ row.student.last_name }}</a></td>
+          <td>{{ row.student.admission_number }}</td>
+          <td>{{ row.charged|floatformat:2 }}</td>
+          <td>{{ row.paid|floatformat:2 }}</td>
+          <td>{{ row.outstanding|floatformat:2 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted">No outstanding fees.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

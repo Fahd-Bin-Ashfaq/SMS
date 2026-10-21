@@ -1,0 +1,31 @@
+{% if homework_list %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr><th>Assignment</th><th>Class</th><th>Subject</th><th>Assigned by</th><th>Assigned</th><th>Due</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for homework in homework_list %}
+          <tr>
+            <td>
+              <strong>{{ homework.title }}</strong>
+              {% if homework.description %}<div class="text-muted small">{{ homework.description|linebreaksbr }}</div>{% endif %}
+            </td>
+            <td>{{ homework.classroom }}</td>
+            <td>{{ homework.subject }}</td>
+            <td>{{ homework.assigned_by }}</td>
+            <td>{{ homework.assigned_date|date:"DATE_FORMAT" }}</td>
+            <td>{{ homework.due_date|date:"DATE_FORMAT" }}</td>
+            <td>
+              {% if homework.assigned_by_id == user.pk %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'homework:edit' homework.pk %}">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">No homework assignments are available.</p>
+{% endif %}

@@ -1,0 +1,36 @@
+{% extends "portal/base.html" %}
+{% block title %}School reports · School Portal{% endblock %}
+{% block page_heading %}Reports{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">School reports</h1>
+    {% if role == "teacher" %}<p class="text-muted mb-0">Your assigned classes only.</p>{% endif %}
+  </div>
+  <button class="btn btn-outline-primary no-print" type="button" onclick="window.print()">Print report</button>
+</div>
+<form method="get" class="card card-body mb-4 no-print">
+  <div class="row g-3 align-items-end">
+    <label class="col-sm-5 col-lg-4">From <input class="form-control" type="date" name="start" value="{{ report_start|date:'Y-m-d' }}"></label>
+    <label class="col-sm-5 col-lg-4">To <input class="form-control" type="date" name="end" value="{{ report_end|date:'Y-m-d' }}"></label>
+    <div class="col-sm-2"><button class="btn btn-primary" type="submit">Apply filters</button></div>
+  </div>
+</form>
+<p class="text-muted small">Reporting date: {{ today|date:"j F Y" }}{% if report_start or report_end %} · Filter: {{ report_start|default:"any date" }} to {{ report_end|default:"any date" }}{% endif %}</p>
+<section class="row g-3 mb-4" aria-label="Report summary">
+  <div class="col-sm-6 col-xl-3"><article class="card card-body h-100"><div class="text-muted small">Active students</div><div class="fs-3 fw-bold">{{ active_students }}</div></article></div>
+  {% if role != "teacher" %}<div class="col-sm-6 col-xl-3"><article class="card card-body h-100"><div class="text-muted small">Teachers</div><div class="fs-3 fw-bold">{{ active_teachers }}</div></article></div>{% endif %}
+  <div class="col-sm-6 col-xl-3"><article class="card card-body h-100"><div class="text-muted small">Today's attendance</div><div class="fs-3 fw-bold">{{ attendance.total }}</div><div class="small text-muted">Present {{ attendance.present }}, absent {{ attendance.absent }}, late {{ attendance.late }}</div></article></div>
+  {% if role == "principal" or role == "office" %}<div class="col-sm-6 col-xl-3"><article class="card card-body h-100"><div class="text-muted small">Fee balance</div><div class="fs-3 fw-bold">{{ fee_balance|floatformat:2 }}</div></article></div>{% endif %}
+</section>
+{% if role == "principal" %}
+<section class="card card-body mb-4">
+  <h2 class="h5">Recent exams and results</h2>
+  {% if recent_exams %}<div class="list-group list-group-flush">{% for exam in recent_exams %}<div class="list-group-item px-0">{{ exam }}{% if exam.dashboard_result_count %} — {{ exam.dashboard_result_count }} results, average {{ exam.dashboard_average_score|floatformat:1 }}{% endif %}</div>{% endfor %}</div>{% else %}<p class="text-muted mb-0">No exam records found.</p>{% endif %}
+</section>
+{% endif %}
+<section class="card card-body">
+  <h2 class="h5">Upcoming homework</h2>
+  {% if upcoming_homework %}<div class="list-group list-group-flush">{% for item in upcoming_homework %}<div class="list-group-item px-0">{{ item }}{% if item.due_date %} · Due {{ item.due_date|date:"M j, Y" }}{% elif item.due_on %} · Due {{ item.due_on|date:"M j, Y" }}{% endif %}</div>{% endfor %}</div>{% else %}<p class="text-muted mb-0">No upcoming homework found.</p>{% endif %}
+</section>
+{% endblock %}

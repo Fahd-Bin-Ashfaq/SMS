@@ -1,0 +1,19 @@
+{% extends "fees/base.html" %}
+{% block title %}Receipt {{ payment.receipt_reference }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Fee receipt</h1>
+  <button class="btn btn-outline-secondary" type="button" onclick="window.print()">Print</button>
+</div>
+<section class="card card-body" aria-label="Payment receipt">
+  <div class="d-flex justify-content-between"><strong>Receipt number</strong><span>{{ payment.receipt_reference }}</span></div>
+  <div class="d-flex justify-content-between"><strong>Student</strong><span>{{ payment.student.first_name }} {{ payment.student.last_name }} ({{ payment.student.admission_number }})</span></div>
+  <div class="d-flex justify-content-between"><strong>Academic year</strong><span>{{ payment.academic_year|default:"—" }}</span></div>
+  <div class="d-flex justify-content-between"><strong>Payment date</strong><span>{{ payment.payment_date }}</span></div>
+  <div class="d-flex justify-content-between"><strong>Method</strong><span>{{ payment.get_method_display }}</span></div>
+  <div class="d-flex justify-content-between"><strong>Amount received</strong><span>{{ payment.amount|floatformat:2 }}</span></div>
+  {% if payment.notes %}<div class="d-flex justify-content-between"><strong>Notes</strong><span>{{ payment.notes }}</span></div>{% endif %}
+  <hr>
+  <p class="mb-0">Received by: {{ payment.received_by|default:"School office" }}</p>
+</section>
+{% endblock %}
