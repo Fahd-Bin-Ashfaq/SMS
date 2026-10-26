@@ -1,0 +1,51 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Profile{% endblock %}
+{% block extra_style %}
+  .profile-hero { position: relative; display: grid; justify-items: center; gap: 6px; overflow: hidden; padding: 36px 24px 30px; text-align: center; }
+  .profile-hero::after { content: ""; position: absolute; top: -80px; right: -60px; width: 320px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, var(--accent-soft), transparent); pointer-events: none; }
+  .avatar { position: relative; display: grid; width: 120px; height: 120px; place-items: center; margin-bottom: 8px; border: 4px solid var(--accent); border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font: 700 42px var(--font-display); }
+  .avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .avatar .cam { position: absolute; right: 2px; bottom: 2px; display: grid; width: 34px; height: 34px; place-items: center; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+  .profile-hero h2 { margin: 0; font: 700 30px var(--font-display); }
+  .detail { display: flex; align-items: center; gap: 16px; padding: 16px 24px; }
+  .detail .k { flex: 1; color: var(--muted); font-size: 16px; }
+  .detail .v { font-size: 16px; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+  .detail .tile { width: 42px; height: 42px; border-radius: 50%; }
+  .card-title { padding: 18px 24px; color: var(--muted); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .card > * + * { border-top: 1px solid var(--border); }
+  @media (max-width: 560px) { .detail { flex-wrap: wrap; padding: 14px 18px; } .detail .v { width: 100%; padding-left: 58px; text-align: left; } }
+{% endblock %}
+{% block content %}
+<section class="card profile-hero">
+  <a class="avatar" href="{% url 'student_portal:profile_edit' %}" aria-label="Change photo">
+    {% if student.photo %}<img src="{{ student.photo.url }}" alt="">{% else %}{{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}{% endif %}
+    <span class="cam">{% icon "camera" 16 %}</span>
+  </a>
+  <h2>{{ student.full_name }}</h2>
+  <div class="muted mono">{{ student.admission_number }}</div>
+  <a class="btn" style="margin-top:10px" href="{% url 'student_portal:profile_edit' %}">{% icon "pencil" 16 %}Edit profile</a>
+</section>
+
+<section class="card" style="margin-top:18px">
+  <div class="detail"><span class="tile tile-soft">{% icon "mail" 18 %}</span><span class="k">Email</span><span class="v">{{ student.email|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "phone" 18 %}</span><span class="k">Phone</span><span class="v">{{ student.phone|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "user" 18 %}</span><span class="k">Gender</span><span class="v">{{ student.get_gender_display|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "calendar" 18 %}</span><span class="k">Date of birth</span><span class="v">{{ student.date_of_birth|date:"j F Y"|default:"—" }}</span></div>
+</section>
+
+<section class="card" style="margin-top:18px">
+  <div class="card-title">Additional details</div>
+  <div class="detail"><span class="tile tile-soft">{% icon "id-card" 18 %}</span><span class="k">CNIC / B-Form</span><span class="v">{{ student.cnic|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "pin" 18 %}</span><span class="k">Address</span><span class="v">{{ student.address|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "map" 18 %}</span><span class="k">Area</span><span class="v">{{ student.area|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "cap" 18 %}</span><span class="k">Class</span><span class="v">{% if classroom %}{{ classroom.name }} {{ classroom.section }}{% else %}—{% endif %}</span></div>
+</section>
+
+<section class="card" style="margin-top:18px">
+  <div class="card-title">Guardian</div>
+  <div class="detail"><span class="tile tile-soft">{% icon "shield" 18 %}</span><span class="k">Guardian name</span><span class="v">{{ student.guardian_name|default:"—" }}</span></div>
+  <div class="detail"><span class="tile tile-soft">{% icon "phone" 18 %}</span><span class="k">Guardian phone</span><span class="v">{{ student.guardian_phone|default:"—" }}</span></div>
+</section>
+<p class="faint" style="margin-top:14px;font-size:13px">To correct your name, date of birth, gender, CNIC/B-Form or guardian details, contact the school office.</p>
+{% endblock %}

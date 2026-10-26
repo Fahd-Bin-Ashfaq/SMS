@@ -1,0 +1,23 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "bell" 30 %}</span>
+  <div><h1>Notifications</h1><p>Notices from the school</p></div>
+</header>
+<section class="card divided">
+  {% for item in notifications %}
+    <article class="list-row" style="align-items:flex-start">
+      <span class="tile tile-sm tile-soft">{% icon "bell" 20 %}</span>
+      <div class="grow">
+        <div class="row" style="gap:10px;flex-wrap:wrap"><strong>{{ item.title }}</strong>{% if item.is_new %}<span class="chip">New</span>{% endif %}</div>
+        <div class="muted" style="margin-top:4px;white-space:pre-line">{{ item.message }}</div>
+        <div class="label mono" style="margin-top:8px">{{ item.created_at|date:"j M Y · g:i A" }} · {% if item.classroom %}{{ item.classroom.name }} {{ item.classroom.section }}{% else %}All students{% endif %}</div>
+      </div>
+    </article>
+  {% empty %}
+    <div class="empty">No notifications yet.</div>
+  {% endfor %}
+</section>
+{% endblock %}

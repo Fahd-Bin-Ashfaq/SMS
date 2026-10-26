@@ -1,9 +1,16 @@
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from .forms import AcademicYearForm, ClassroomForm, StudentForm
-from .models import AcademicYear, Classroom, Enrollment, Student, TeacherAssignment
+from .forms import AcademicYearForm, ClassroomForm, StudentForm, TimetableEntryForm
+from .models import AcademicYear, Classroom, Enrollment, Student, TeacherAssignment, TimetableEntry
+from .timetable import build_grid, can_edit_timetable
 
 
 MANAGER_ROLES = ("office", "principal")
@@ -159,3 +166,81 @@ class AcademicYearUpdateView(ManagerUpdateView):
 class AcademicYearDeleteView(ManagerDeleteView):
     model = AcademicYear
     list_url_name = "academics:academic_year_list"
+
+
+TIMETABLE_ROLES = ("office", "principal", "teacher")
+
+
+def _timetable_classrooms(user):
+    classrooms = Classroom.objects.select_related("academic_year", "class_teacher__user")
+    if getattr(user, "role", None) == "teacher":
+        classrooms = classrooms.filter(
+            Q(class_teacher__user=user) | Q(teacher_assignments__teacher__user=user)
+        ).distinct()
+    return classrooms.order_by("-academic_year__is_active", "name", "section")
+
+
+@login_required
+def timetable_index(request):
+    if getattr(request.user, "role", None) not in TIMETABLE_ROLES:
+        raise PermissionDenied
+    classrooms = [
+        (classroom, can_edit_timetable(request.user, classroom))
+        for classroom in _timetable_classrooms(request.user)
+    ]
+    return render(request, "academics/timetable_index.html", {"classrooms": classrooms})
+
+
+@login_required
+def timetable_detail(request, pk):
+    if getattr(request.user, "role", None) not in TIMETABLE_ROLES:
+        raise PermissionDenied
+    classroom = get_object_or_404(_timetable_classrooms(request.user), pk=pk)
+    can_edit = can_edit_timetable(request.user, classroom)
+    form = None
+    if can_edit:
+        form = TimetableEntryForm(request.POST or None, classroom=classroom)
+        if request.method == "POST" and form.is_valid():
+            form.save()
+            messages.success(request, "Period added to the timetable.")
+            return redirect("academics:timetable_detail", pk=classroom.pk)
+    elif request.method == "POST":
+        raise PermissionDenied
+    entries = classroom.timetable_entries.select_related("subject", "teacher__user")
+    return render(
+        request,
+        "academics/timetable_detail.html",
+        {"classroom": classroom, "grid": build_grid(entries), "can_edit": can_edit, "form": form},
+    )
+
+
+def _editable_entry(request, pk):
+    entry = get_object_or_404(TimetableEntry.objects.select_related("classroom__class_teacher"), pk=pk)
+    if not can_edit_timetable(request.user, entry.classroom):
+        raise PermissionDenied
+    return entry
+
+
+@login_required
+def timetable_entry_edit(request, pk):
+    entry = _editable_entry(request, pk)
+    form = TimetableEntryForm(request.POST or None, instance=entry, classroom=entry.classroom)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Period updated.")
+        return redirect("academics:timetable_detail", pk=entry.classroom_id)
+    return render(
+        request,
+        "academics/timetable_entry_form.html",
+        {"form": form, "entry": entry, "classroom": entry.classroom},
+    )
+
+
+@login_required
+@require_POST
+def timetable_entry_delete(request, pk):
+    entry = _editable_entry(request, pk)
+    classroom_id = entry.classroom_id
+    entry.delete()
+    messages.success(request, "Period removed.")
+    return redirect("academics:timetable_detail", pk=classroom_id)

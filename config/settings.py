@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.homework.apps.HomeworkConfig",
     "apps.fees.apps.FeesConfig",
     "apps.dashboard.apps.DashboardConfig",
+    "apps.student_portal.apps.StudentPortalConfig",
 ]
 
 MIDDLEWARE = [
@@ -87,13 +88,19 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en"
-TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "UTC")
+TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "Asia/Karachi")
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:index"
 LOGOUT_REDIRECT_URL = "login"
+
+SCHOOL_NAME = os.environ.get("SCHOOL_NAME", "Demo Public School")
+SCHOOL_CAMPUS = os.environ.get("SCHOOL_CAMPUS", "Main Campus")
+SCHOOL_CONTACT = os.environ.get("SCHOOL_CONTACT", "")

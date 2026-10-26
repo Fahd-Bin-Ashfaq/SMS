@@ -96,17 +96,22 @@ With the development server stopped or in another terminal, run:
 python manage.py seed_demo_data
 ```
 
-This command is restricted to `DEBUG=true` and creates fictional demo records: 10 students, 3 teachers, one principal account, one student login, classroom assignments, attendance, homework, and sample marks. It can be rerun to refresh the demo accounts and records.
+This command is restricted to `DEBUG=true` and creates fictional demo records: 5 classes with 10 students each, 6 subject teachers (one is class teacher of each class), a Mon–Fri timetable, principal, office and student logins, two weeks of attendance, homework, sample marks, monthly tuition fees with payments, study guides and notifications. It can be rerun to refresh the demo accounts and records.
 
-All demo accounts use the same local-only password, `Demo123!`:
+All demo accounts use the same local-only password, `1234`:
 
 | Role | Username |
 | --- | --- |
-| Principal | `demo.principal` |
-| Teacher | `demo.teacher1` |
-| Teacher | `demo.teacher2` |
-| Teacher | `demo.teacher3` |
-| Student | `demo.student` |
+| Principal | `principal` |
+| Office staff | `office` |
+| Teacher | `teacher1` … `teacher6` (`teacher1` is class teacher of Grade 6 A) |
+| Student | `student` |
+
+### Student portal
+
+Students are sent to `/portal/` after signing in. It has Home (next period, attendance), Classroom (weekly timetable, homework, results), Study Guides, Balance (month-by-month fees for the session), ID Card, Profile and Notifications, with light and dark themes. Study guides and notifications are added from the Django admin.
+
+Timetables are managed at `/academics/timetable/`: principals can edit every class, a class teacher can edit their own class, and other staff can view. Set `SCHOOL_NAME`, `SCHOOL_CAMPUS` and `SCHOOL_CONTACT` to change what the portal and ID card show.
 
 Do not use demo credentials or fictional sample data in a production deployment. The student account only sees its linked student profile and its own attendance/results.
 

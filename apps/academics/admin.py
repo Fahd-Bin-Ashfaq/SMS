@@ -8,6 +8,7 @@ from .models import (
     Subject,
     Teacher,
     TeacherAssignment,
+    TimetableEntry,
 )
 
 
@@ -27,7 +28,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Classroom)
 class ClassroomAdmin(admin.ModelAdmin):
-    list_display = ("name", "section", "academic_year")
+    list_display = ("name", "section", "academic_year", "class_teacher")
     list_filter = ("academic_year",)
     search_fields = ("name", "section")
 
@@ -56,3 +57,9 @@ class TeacherAssignmentAdmin(admin.ModelAdmin):
     list_display = ("teacher", "classroom", "subject")
     list_filter = ("classroom__academic_year", "classroom", "subject")
     search_fields = ("teacher__user__username", "classroom__name", "subject__name")
+
+
+@admin.register(TimetableEntry)
+class TimetableEntryAdmin(admin.ModelAdmin):
+    list_display = ("classroom", "day", "start_time", "end_time", "subject", "teacher", "label")
+    list_filter = ("classroom__academic_year", "classroom", "day")

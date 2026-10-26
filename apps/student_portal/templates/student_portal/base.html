@@ -1,0 +1,224 @@
+{% load portal_icons %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Home{% endblock %} · {{ school_name }}</title>
+  <script>
+    try { var t = localStorage.getItem("portal-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+      --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+      --radius: 18px;
+      --radius-sm: 12px;
+      --sidebar: 272px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #13181a;
+      --sidebar-bg: #161c1e;
+      --surface: #1e2628;
+      --surface-2: #242e30;
+      --border: #2b3638;
+      --text: #e9efed;
+      --muted: #9aa8a5;
+      --faint: #6f7d7a;
+      --accent: #5dbb8c;
+      --accent-strong: #6fd09e;
+      --accent-soft: #5dbb8c22;
+      --accent-ink: #0f2a1d;
+      --danger: #ef7d63;
+      --danger-soft: #ef7d6320;
+      --warning: #e6b75a;
+      --warning-soft: #e6b75a22;
+      --info: #7fb2e5;
+      --info-soft: #7fb2e520;
+      --shadow: 0 1px 0 #ffffff06 inset, 0 10px 30px #00000033;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f2f5f3;
+      --sidebar-bg: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #f5f8f6;
+      --border: #dfe7e3;
+      --text: #15201c;
+      --muted: #5b6b66;
+      --faint: #85938f;
+      --accent: #2f9a68;
+      --accent-strong: #23845a;
+      --accent-soft: #2f9a681a;
+      --accent-ink: #ffffff;
+      --danger: #c4492f;
+      --danger-soft: #c4492f14;
+      --warning: #a86d07;
+      --warning-soft: #e0a32a22;
+      --info: #2f6fb0;
+      --info-soft: #2f6fb014;
+      --shadow: 0 1px 2px #15201c0a, 0 8px 24px #15201c0d;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { min-height: 100vh; background: var(--bg); color: var(--text); font: 15px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    .icon { flex: none; }
+
+    /* Sidebar */
+    .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; width: var(--sidebar); flex-direction: column; gap: 18px; padding: 22px 16px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--sidebar-bg); }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 4px 10px 8px; }
+    .brand-mark { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 700 18px var(--font-display); }
+    .brand-name { font: 700 16px/1.2 var(--font-display); }
+    .brand-sub { color: var(--muted); font-size: 12px; }
+    .nav { display: grid; gap: 4px; }
+    .nav a { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: var(--radius-sm); color: var(--muted); font-size: 16px; font-weight: 500; transition: background .15s, color .15s; }
+    .nav a:hover { background: var(--surface); color: var(--text); }
+    .nav a.active { background: var(--surface-2); color: var(--accent-strong); font-weight: 600; box-shadow: inset 0 0 0 1px var(--border); }
+    .sidebar-actions { display: grid; gap: 10px; margin-top: auto; }
+    .side-btn { position: relative; display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; padding: 13px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s; }
+    .side-btn:hover { background: var(--surface-2); }
+    .side-btn.active { border-color: var(--accent); color: var(--accent-strong); }
+    .side-btn.logout { color: var(--danger); }
+    .badge-count { min-width: 20px; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; }
+    .theme-dark-label, .theme-light-label { display: inline-flex; align-items: center; gap: 10px; }
+    :root[data-theme="dark"] .theme-light-label, :root[data-theme="light"] .theme-dark-label { display: none; }
+
+    /* Main */
+    .topbar { display: none; }
+    .main { min-height: 100vh; margin-left: var(--sidebar); }
+    .content { width: min(100%, 1180px); margin: 0 auto; padding: 44px 40px 64px; }
+    .page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 34px; }
+    .tile { display: grid; width: 64px; height: 64px; flex: none; place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+    .tile-sm { width: 46px; height: 46px; border-radius: 14px; }
+    .tile-soft { background: var(--accent-soft); color: var(--accent-strong); }
+    .page-head h1 { margin: 0; font: 700 30px/1.15 var(--font-display); letter-spacing: -.01em; }
+    .page-head p { margin: 4px 0 0; color: var(--muted); }
+    .messages { margin: 0 0 22px; padding: 0; list-style: none; }
+    .messages li { padding: 12px 16px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
+
+    /* Building blocks */
+    .card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .card-pad { padding: 24px; }
+    .section-label { display: flex; align-items: center; gap: 10px; margin: 36px 0 16px; color: var(--muted); font: 500 13px var(--font-mono); letter-spacing: .18em; text-transform: uppercase; }
+    .section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .muted { color: var(--muted); }
+    .faint { color: var(--faint); }
+    .mono { font-family: var(--font-mono); }
+    .grid { display: grid; gap: 18px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .row { display: flex; align-items: center; gap: 16px; }
+    .stack { display: grid; gap: 4px; }
+    .label { color: var(--muted); font-size: 13px; }
+    .value { font-size: 17px; font-weight: 600; }
+    .big { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 12px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+    .chip.due, .chip.partial { background: var(--danger-soft); color: var(--danger); }
+    .chip.upcoming { background: var(--info-soft); color: var(--info); }
+    .chip.late { background: var(--warning-soft); color: var(--warning); }
+    .chip.absent { background: var(--danger-soft); color: var(--danger); }
+    .divided > * + * { border-top: 1px dashed var(--border); }
+    .list-row { display: flex; align-items: center; gap: 16px; padding: 18px 24px; }
+    .list-row .grow { flex: 1; min-width: 0; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn:hover { border-color: var(--accent); }
+    .btn-primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: var(--accent-strong); }
+    .empty { padding: 28px 24px; color: var(--muted); text-align: center; }
+    .progress { height: 10px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
+    .progress > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+    .table-wrap { overflow-x: auto; }
+    table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th { padding: 12px 16px; color: var(--muted); font: 500 12px var(--font-mono); letter-spacing: .08em; text-align: left; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .table td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .table tr:last-child td { border-bottom: 0; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    @media (max-width: 1100px) {
+      .grid-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .sidebar { transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 0 40px #0006; }
+      body.nav-open .sidebar { transform: none; }
+      .scrim { position: fixed; inset: 0; z-index: 25; display: none; background: #0008; }
+      body.nav-open .scrim { display: block; }
+      .main { margin-left: 0; }
+      .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--sidebar-bg); }
+      .icon-btn { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); cursor: pointer; }
+      .content { padding: 26px 16px 48px; }
+      .page-head { margin-bottom: 24px; }
+      .page-head h1 { font-size: 25px; }
+      .tile { width: 52px; height: 52px; }
+      .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+      .grid-4, .grid-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card-pad { padding: 18px; }
+      .list-row { padding: 16px 18px; }
+      .big { font-size: 26px; }
+    }
+    @media print {
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .main { margin: 0; }
+      body { background: #fff; }
+    }
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+  <div class="scrim" data-nav-close></div>
+  <aside class="sidebar" id="sidebar" aria-label="Student navigation">
+    <a class="brand" href="{% url 'student_portal:home' %}">
+      <span class="brand-mark">{{ school_name|slice:":1" }}</span>
+      <span><span class="brand-name">{{ school_name }}</span><br><span class="brand-sub">Student portal</span></span>
+    </a>
+    <nav class="nav">
+      <a class="{% if section == 'home' %}active{% endif %}" href="{% url 'student_portal:home' %}">{% icon "home" 22 %}Home</a>
+      <a class="{% if section == 'classroom' %}active{% endif %}" href="{% url 'student_portal:classroom' %}">{% icon "classroom" 22 %}Classroom</a>
+      <a class="{% if section == 'guides' %}active{% endif %}" href="{% url 'student_portal:study_guides' %}">{% icon "guide" 22 %}Study Guides</a>
+      <a class="{% if section == 'balance' %}active{% endif %}" href="{% url 'student_portal:balance' %}">{% icon "wallet" 22 %}Balance</a>
+      <a class="{% if section == 'id_card' %}active{% endif %}" href="{% url 'student_portal:id_card' %}">{% icon "id-card" 22 %}ID Card</a>
+      <a class="{% if section == 'profile' %}active{% endif %}" href="{% url 'student_portal:profile' %}">{% icon "user" 22 %}Profile</a>
+    </nav>
+    <div class="sidebar-actions">
+      <a class="side-btn{% if section == 'notifications' %} active{% endif %}" href="{% url 'student_portal:notifications' %}">{% icon "bell" %}Notifications{% if new_notifications %} <span class="badge-count">{{ new_notifications }}</span>{% endif %}</a>
+      <button class="side-btn" type="button" data-theme-toggle>
+        <span class="theme-dark-label">{% icon "sun" %}Light mode</span>
+        <span class="theme-light-label">{% icon "moon" %}Dark mode</span>
+      </button>
+      <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="side-btn logout" type="submit">{% icon "logout" %}Log out</button></form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" type="button" aria-label="Open menu" aria-controls="sidebar" data-nav-open>{% icon "menu" %}</button>
+      <span class="brand-name">{{ school_name }}</span>
+      <a class="icon-btn" href="{% url 'student_portal:notifications' %}" aria-label="Notifications">{% icon "bell" %}</a>
+    </header>
+    <main class="content">
+      {% if messages %}<ul class="messages" aria-live="polite">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    document.querySelector("[data-theme-toggle]").addEventListener("click", function () {
+      var root = document.documentElement;
+      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      try { localStorage.setItem("portal-theme", root.dataset.theme); } catch (e) {}
+    });
+    document.querySelector("[data-nav-open]").addEventListener("click", function () { document.body.classList.add("nav-open"); });
+    document.querySelector("[data-nav-close]").addEventListener("click", function () { document.body.classList.remove("nav-open"); });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

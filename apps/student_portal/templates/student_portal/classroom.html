@@ -1,0 +1,124 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Classroom{% endblock %}
+{% block extra_style %}
+  .class-name { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font-size: 24px; font-weight: 700; }
+  .class-name svg { color: var(--accent-strong); }
+  .summary-card { display: flex; align-items: center; gap: 16px; padding: 20px; transition: border-color .15s; }
+  a.summary-card:hover { border-color: var(--accent); }
+  .tt th, .tt td { text-align: center; }
+  .tt th:first-child, .tt td:first-child { text-align: left; white-space: nowrap; }
+  .tt th.today { color: var(--accent-strong); }
+  .tt td.today { background: var(--accent-soft); }
+  .tt .slot-break td { color: var(--muted); font-style: italic; background: var(--surface-2); }
+  .tt .teacher { color: var(--muted); font-size: 12px; }
+  .marks { font-variant-numeric: tabular-nums; }
+  [id] { scroll-margin-top: 80px; }
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "classroom" 30 %}</span>
+  <div><h1>Classroom</h1><p>Your current class</p></div>
+</header>
+
+{% if not classroom %}
+  <div class="card empty">You are not enrolled in a class for the current session yet.</div>
+{% else %}
+<h2 class="class-name">{% icon "cap" 24 %}{{ classroom.name }} {{ classroom.section }} · {{ year.name }}</h2>
+<section class="card divided">
+  <div class="list-row">
+    <span class="tile tile-sm">{% icon "user" 24 %}</span>
+    <div class="grow"><div class="label">Class teacher</div><div class="value">{{ classroom.class_teacher|default:"Not assigned yet" }}</div></div>
+  </div>
+  <div class="list-row">
+    <span class="tile tile-sm">{% icon "clock" 24 %}</span>
+    <div class="grow">
+      {% if up_next %}
+        <div class="value">Next: {{ up_next.entry.subject.name }} · {% if up_next.when == "Now" %}in progress{% else %}{{ up_next.when }}{% endif %}</div>
+        <div class="label">{{ up_next.entry.start_time|time:"g:i A" }} – {{ up_next.entry.end_time|time:"g:i A" }}{% if up_next.entry.teacher %} · {{ up_next.entry.teacher }}{% endif %}</div>
+      {% else %}
+        <div class="value">No upcoming periods</div>
+      {% endif %}
+      {% if hours %}<div class="label">School days: {{ hours.days }} · {{ hours.start|time:"g:i A" }} – {{ hours.end|time:"g:i A" }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="list-row">
+    <span class="tile tile-sm">{% icon "book" 24 %}</span>
+    <div class="grow"><div class="label">Subjects</div><div class="value" style="color:var(--accent-strong)">{% for item in subject_teachers %}{{ item.subject.name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</div></div>
+  </div>
+</section>
+
+<div class="grid grid-4" style="margin-top:18px">
+  <a class="card summary-card" href="#homework"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div><strong>Homework</strong><div class="label">{% if pending_homework %}{{ pending_homework }} pending{% else %}Nothing pending{% endif %}</div></div></a>
+  <a class="card summary-card" href="#results"><span class="tile tile-sm tile-soft">{% icon "award" 22 %}</span><div><strong>Results</strong><div class="label">{% if results %}{{ results.exam.name }}{% if results.percent is not None %} · {{ results.percent }}%{% endif %}{% else %}No results yet{% endif %}</div></div></a>
+  <a class="card summary-card" href="#attendance"><span class="tile tile-sm tile-soft">{% icon "calendar-check" 22 %}</span><div><strong>Attendance</strong><div class="label">{% if attendance.percent is not None %}{{ attendance.percent }}% · {{ attendance.total }} days{% else %}No records yet{% endif %}</div></div></a>
+  <a class="card summary-card" href="{% url 'student_portal:study_guides' %}"><span class="tile tile-sm tile-soft" style="color:var(--warning);background:var(--warning-soft)">{% icon "guide" 22 %}</span><div><strong>Study Guides</strong><div class="label">{% if guide_count %}{{ guide_count }} guide{{ guide_count|pluralize }}{% else %}No guides yet{% endif %}</div></div></a>
+</div>
+
+<div class="section-label" id="timetable">{% icon "calendar" 18 %}Weekly timetable</div>
+{% if grid.rows %}
+  <section class="card table-wrap">
+    <table class="table tt">
+      <thead><tr><th>Time</th>{% for value, label in grid.days %}<th class="{% if value == today_weekday %}today{% endif %}">{{ label|slice:":3" }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in grid.rows %}
+          <tr class="{% if row.cells.0 and not row.cells.0.subject %}slot-break{% endif %}">
+            <td class="mono">{{ row.start|time:"g:i" }}–{{ row.end|time:"g:i" }}</td>
+            {% for entry in row.cells %}
+              <td class="{% if forloop.counter0 == today_weekday %}today{% endif %}">
+                {% if entry %}<div>{{ entry.title }}</div>{% if entry.teacher %}<div class="teacher">{{ entry.teacher }}</div>{% endif %}{% else %}<span class="faint">—</span>{% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% else %}
+  <div class="card empty">The timetable for your class has not been published yet.</div>
+{% endif %}
+
+{% if subject_teachers %}
+<div class="section-label">{% icon "users" 18 %}Subject teachers</div>
+<section class="grid grid-3">
+  {% for item in subject_teachers %}
+    <div class="card summary-card"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "user" 20 %}</span><div><strong>{{ item.teacher }}</strong><div class="label">{{ item.subject.name }}</div></div></div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="section-label" id="homework">{% icon "clipboard" 18 %}Homework</div>
+<section class="card divided">
+  {% for item in homework %}
+    <div class="list-row">
+      <div class="grow"><strong>{{ item.title }}</strong><div class="label">{{ item.subject.name }} · assigned {{ item.assigned_date|date:"j M" }}</div>{% if item.description %}<div class="muted" style="margin-top:4px">{{ item.description }}</div>{% endif %}</div>
+      {% if item.due_date < now.date %}<span class="chip">Closed</span>{% else %}<span class="chip upcoming">Due {{ item.due_date|date:"D, j M" }}</span>{% endif %}
+    </div>
+  {% empty %}
+    <div class="empty">No homework has been assigned yet.</div>
+  {% endfor %}
+</section>
+
+<div class="section-label" id="results">{% icon "award" 18 %}Results</div>
+{% if results %}
+  <section class="card table-wrap">
+    <div class="list-row" style="border-bottom:1px solid var(--border)"><div class="grow"><strong>{{ results.exam.name }}</strong><div class="label">{{ results.exam.date|date:"j F Y" }}</div></div>{% if results.percent is not None %}<span class="chip">{{ results.obtained|floatformat:"-2" }} / {{ results.total|floatformat:"-2" }} · {{ results.percent }}%</span>{% endif %}</div>
+    <table class="table">
+      <thead><tr><th>Subject</th><th class="num">Marks</th><th class="num">Out of</th></tr></thead>
+      <tbody>{% for row in results.rows %}<tr><td>{{ row.subject.name }}</td><td class="num marks">{{ row.marks|floatformat:"-2" }}</td><td class="num marks muted">{{ row.maximum|floatformat:"-2"|default:"—" }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+{% else %}
+  <div class="card empty">No exam results have been published yet.</div>
+{% endif %}
+
+<div class="section-label" id="attendance">{% icon "calendar-check" 18 %}Recent attendance</div>
+<section class="card divided">
+  {% for record in recent_attendance %}
+    <div class="list-row"><div class="grow mono">{{ record.date|date:"D, j M Y" }}</div><span class="chip {{ record.status }}">{{ record.get_status_display }}</span></div>
+  {% empty %}
+    <div class="empty">No attendance has been recorded yet.</div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

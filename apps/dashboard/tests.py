@@ -107,12 +107,10 @@ class DashboardEmptyDataTests(TestCase):
             student=other_student, classroom=classroom, academic_year=year
         )
 
+        context = views.build_dashboard_context(student_user)
+        self.assertEqual(context["active_students"], 1)
+        self.assertEqual(context["attendance"]["total"], 1)
+
         self.client.force_login(student_user)
         response = self.client.get("/dashboard/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["active_students"], 1)
-        self.assertEqual(response.context["attendance"]["total"], 1)
-        self.assertContains(response, "DEMO-001")
-        self.assertNotContains(response, "DEMO-002")
-        self.assertNotContains(response, "Fee balance")
+        self.assertRedirects(response, "/portal/")

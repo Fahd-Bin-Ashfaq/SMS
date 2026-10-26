@@ -13,6 +13,12 @@ MONEY_ZERO = Decimal("0.00")
 
 
 class FeeCharge(models.Model):
+    class Category(models.TextChoices):
+        MONTHLY = "monthly", "Monthly fee"
+        LAB = "lab", "Lab charges"
+        ACTIVITY = "activity", "Activity charges"
+        OTHER = "other", "Other"
+
     student = models.ForeignKey(
         "academics.Student", on_delete=models.PROTECT, related_name="fee_charges"
     )
@@ -30,6 +36,7 @@ class FeeCharge(models.Model):
         blank=True,
         related_name="fee_charges",
     )
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.MONTHLY)
     description = models.CharField(max_length=160)
     amount = models.DecimalField(
         max_digits=10,

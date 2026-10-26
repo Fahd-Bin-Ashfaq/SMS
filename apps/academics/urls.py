@@ -30,4 +30,12 @@ urlpatterns = [
         views.AcademicYearDeleteView.as_view(),
         name="academic_year_delete",
     ),
+    path("timetable/", views.timetable_index, name="timetable_index"),
+    path("timetable/<int:pk>/", views.timetable_detail, name="timetable_detail"),
+    path("timetable/periods/<int:pk>/edit/", views.timetable_entry_edit, name="timetable_entry_edit"),
+    path(
+        "timetable/periods/<int:pk>/delete/",
+        views.timetable_entry_delete,
+        name="timetable_entry_delete",
+    ),
 ]

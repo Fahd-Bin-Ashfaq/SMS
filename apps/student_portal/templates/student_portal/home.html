@@ -1,0 +1,126 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Home{% endblock %}
+{% block extra_style %}
+  .hero { position: relative; overflow: hidden; padding: 34px 36px 46px; }
+  .hero::after { content: ""; position: absolute; top: -60px; right: -40px; width: 320px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, var(--accent-soft), transparent); pointer-events: none; }
+  .hero h1 { margin: 0; font: 700 34px/1.15 var(--font-display); letter-spacing: -.01em; }
+  .clock { display: flex; align-items: center; gap: 10px; margin-top: 8px; color: var(--muted); font: 15px var(--font-mono); }
+  .clock::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .hero p { margin: 10px 0 0; color: var(--muted); font-size: 17px; }
+  .next summary { display: flex; align-items: center; gap: 18px; padding: 22px 24px; cursor: pointer; list-style: none; }
+  .next summary::-webkit-details-marker { display: none; }
+  .next .chev { color: var(--muted); transition: transform .15s; }
+  .next[open] .chev { transform: rotate(180deg); }
+  .next-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 21px; font-weight: 700; }
+  .next-meta { margin-top: 2px; color: var(--muted); }
+  .periods { border-top: 1px solid var(--border); }
+  .period { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 14px; padding: 12px 24px; }
+  .period + .period { border-top: 1px dashed var(--border); }
+  .period.is-break { color: var(--muted); }
+  .period.is-now { background: var(--accent-soft); }
+  .attendance-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .shortcut { display: grid; justify-items: center; gap: 12px; padding: 22px 12px; text-align: center; font-weight: 600; transition: border-color .15s, transform .15s; }
+  .shortcut:hover { border-color: var(--accent); transform: translateY(-2px); }
+  @media (max-width: 860px) { .hero { padding: 24px 20px 30px; } .hero h1 { font-size: 26px; } .next summary { padding: 18px; } .next-title { font-size: 18px; } .period { grid-template-columns: 1fr; gap: 2px; padding: 12px 18px; } }
+{% endblock %}
+{% block content %}
+<section class="card hero">
+  <h1><span data-greeting>{% if now.hour < 12 %}Good morning{% elif now.hour < 17 %}Good afternoon{% else %}Good evening{% endif %}</span>, {{ student.first_name }}</h1>
+  <div class="clock" data-clock>{{ now|date:"l, F j · g:i A" }}</div>
+  <p>{% if classroom %}{{ classroom.name }} {{ classroom.section }} · Session {{ year.name }}{% else %}You are not enrolled in a class for the current session yet.{% endif %}</p>
+</section>
+
+<div class="section-label">{% icon "clock" 18 %}Up next</div>
+<details class="card next"{% if not up_next %} open{% endif %}>
+  <summary>
+    <span class="tile tile-sm">{% icon "cap" 24 %}</span>
+    <span style="flex:1;min-width:0">
+      <span class="label">Up next</span>
+      {% if up_next %}
+        <div class="next-title">{{ up_next.entry.subject.name }} <span class="chip{% if up_next.when != 'Now' %} upcoming{% endif %}">{{ up_next.when }}</span></div>
+        <div class="next-meta">{{ up_next.entry.start_time|time:"g:i A" }} – {{ up_next.entry.end_time|time:"g:i A" }}{% if up_next.entry.teacher %} · {{ up_next.entry.teacher }}{% endif %}</div>
+      {% else %}
+        <div class="next-title">No classes scheduled</div>
+        <div class="next-meta">Your timetable has not been published yet.</div>
+      {% endif %}
+    </span>
+    {% if today_periods %}<span class="chev">{% icon "chevron-down" 22 %}</span>{% endif %}
+  </summary>
+  {% if today_periods %}
+    <div class="periods">
+      <div class="period"><span class="label mono">TODAY · {{ now|date:"l"|upper }}</span></div>
+      {% for period in today_periods %}
+        <div class="period{% if not period.subject %} is-break{% endif %}{% if up_next.when == 'Now' and up_next.entry.pk == period.pk %} is-now{% endif %}">
+          <span class="mono">{{ period.start_time|time:"g:i" }} – {{ period.end_time|time:"g:i A" }}</span>
+          <strong>{{ period.title }}</strong>
+          <span class="muted">{{ period.teacher|default:"" }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</details>
+
+<div class="section-label">{% icon "calendar-check" 18 %}Attendance</div>
+<section class="card card-pad">
+  <div class="attendance-top">
+    <div class="row">
+      <span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "calendar-check" 24 %}</span>
+      <div><div class="big">{{ attendance.total }}</div><div class="muted">School days recorded</div></div>
+    </div>
+    <div style="text-align:right"><div class="big">{% if attendance.percent is not None %}{{ attendance.percent }}%{% else %}—{% endif %}</div><div class="muted">Attendance</div></div>
+  </div>
+  <div class="progress" role="progressbar" aria-label="Attendance" aria-valuenow="{{ attendance.percent|default:0 }}" aria-valuemin="0" aria-valuemax="100"><span style="width:{{ attendance.percent|default:0 }}%"></span></div>
+  <p class="muted" style="margin:14px 0 0">{{ attendance.present }} present · {{ attendance.late }} late · {{ attendance.absent }} absent</p>
+</section>
+
+{% if homework or latest_notification %}
+<div class="grid grid-2" style="margin-top:18px">
+  <section class="card">
+    <div class="list-row"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div class="grow"><strong>Homework due</strong><div class="label">Next deadlines for your class</div></div></div>
+    <div class="divided">
+      {% for item in homework %}
+        <div class="list-row"><div class="grow"><strong>{{ item.title }}</strong><div class="label">{{ item.subject.name }}</div></div><span class="chip upcoming">{{ item.due_date|date:"D, j M" }}</span></div>
+      {% empty %}
+        <div class="empty">Nothing due right now.</div>
+      {% endfor %}
+    </div>
+  </section>
+  <a class="card" href="{% url 'student_portal:notifications' %}">
+    <div class="list-row"><span class="tile tile-sm tile-soft">{% icon "bell" 22 %}</span><div class="grow"><strong>Latest notice</strong><div class="label">From the school</div></div></div>
+    {% if latest_notification %}
+      <div class="list-row" style="border-top:1px dashed var(--border)"><div class="grow"><strong>{{ latest_notification.title }}</strong><div class="muted">{{ latest_notification.message|truncatewords:22 }}</div><div class="label mono" style="margin-top:6px">{{ latest_notification.created_at|date:"j M Y" }}</div></div></div>
+    {% else %}
+      <div class="empty">No notices yet.</div>
+    {% endif %}
+  </a>
+</div>
+{% endif %}
+
+<div class="section-label">Shortcuts</div>
+<nav class="grid grid-5" aria-label="Shortcuts">
+  <a class="card shortcut" href="{% url 'student_portal:id_card' %}"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "id-card" 22 %}</span>View ID card</a>
+  <a class="card shortcut" href="{% url 'student_portal:classroom' %}#timetable"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "calendar" 22 %}</span>Timetable</a>
+  <a class="card shortcut" href="{% url 'student_portal:classroom' %}#attendance"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "calendar-check" 22 %}</span>Attendance</a>
+  <a class="card shortcut" href="{% url 'student_portal:classroom' %}#homework"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "clipboard" 22 %}</span>Homework</a>
+  <a class="card shortcut" href="{% url 'student_portal:balance' %}"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "wallet" 22 %}</span>Fee balance</a>
+</nav>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    var clock = document.querySelector("[data-clock]");
+    var greeting = document.querySelector("[data-greeting]");
+    var dateFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+    var timeFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" });
+    function tick() {
+      var now = new Date();
+      var hour = now.getHours();
+      clock.textContent = dateFmt.format(now) + " · " + timeFmt.format(now);
+      greeting.textContent = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
+{% endblock %}

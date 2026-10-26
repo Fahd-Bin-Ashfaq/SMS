@@ -78,7 +78,8 @@
       <nav class="portal-nav" aria-label="Main navigation">
         <a class="portal-nav-link{% if request.path == '/dashboard/' %} active{% endif %}" href="{% url 'dashboard:index' %}"><span class="portal-nav-icon">⌂</span>Dashboard</a>
         {% if user.role != "student" %}<a class="portal-nav-link{% if request.path == '/dashboard/reports/' %} active{% endif %}" href="{% url 'dashboard:reports' %}"><span class="portal-nav-icon">▤</span>Reports</a>{% endif %}
-        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/academics/" in request.path %} active{% endif %}" href="/academics/"><span class="portal-nav-icon">▦</span>Academics</a>{% endif %}
+        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/academics/" in request.path and "/timetable/" not in request.path %} active{% endif %}" href="/academics/"><span class="portal-nav-icon">▦</span>Academics</a>{% endif %}
+        {% if user.role != "student" %}<a class="portal-nav-link{% if "/academics/timetable/" in request.path %} active{% endif %}" href="{% url 'academics:timetable_index' %}"><span class="portal-nav-icon">▥</span>Timetable</a>{% endif %}
         {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/attendance/" in request.path %} active{% endif %}" href="/attendance/"><span class="portal-nav-icon">◷</span>Attendance</a>{% endif %}
         {% if user.role == "principal" %}<a class="portal-nav-link{% if "/assessments/" in request.path %} active{% endif %}" href="/assessments/"><span class="portal-nav-icon">▧</span>Assessments</a>{% endif %}
         {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/homework/" in request.path %} active{% endif %}" href="/homework/"><span class="portal-nav-icon">▣</span>Homework</a>{% endif %}

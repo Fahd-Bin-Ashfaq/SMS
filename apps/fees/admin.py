@@ -5,7 +5,7 @@ from .models import FeeCharge, FeePayment
 
 @admin.register(FeeCharge)
 class FeeChargeAdmin(admin.ModelAdmin):
-    list_display = ("student", "description", "academic_year", "amount", "due_date", "created_by")
+    list_display = ("student", "category", "description", "academic_year", "amount", "due_date", "created_by")
     list_filter = ("academic_year", "due_date")
     search_fields = ("student__admission_number", "student__first_name", "student__last_name", "description")
     readonly_fields = ("created_at",)

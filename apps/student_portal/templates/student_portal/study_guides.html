@@ -1,0 +1,25 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Study Guides{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "guide" 30 %}</span>
+  <div><h1>Study Guides</h1><p>Notes and material shared with your class</p></div>
+</header>
+<section class="card divided">
+  {% for guide in guides %}
+    <div class="list-row">
+      <span class="tile tile-sm tile-soft">{% icon "file" 22 %}</span>
+      <div class="grow">
+        <strong>{{ guide.title }}</strong>
+        <div class="label">{{ guide.subject.name|default:"General" }} · {{ guide.created_at|date:"j M Y" }}</div>
+        {% if guide.description %}<div class="muted" style="margin-top:4px">{{ guide.description }}</div>{% endif %}
+      </div>
+      {% if guide.file %}<a class="btn" href="{{ guide.file.url }}" target="_blank" rel="noopener">{% icon "file" 16 %}Open</a>{% endif %}
+      {% if guide.link %}<a class="btn" href="{{ guide.link }}" target="_blank" rel="noopener noreferrer">{% icon "link" 16 %}Link</a>{% endif %}
+    </div>
+  {% empty %}
+    <div class="empty">No study guides have been shared with your class yet.</div>
+  {% endfor %}
+</section>
+{% endblock %}

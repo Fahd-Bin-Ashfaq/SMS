@@ -119,6 +119,7 @@
         <a class="nav-link active" href="{% url 'dashboard:index' %}"><span class="nav-icon">⌂</span>Dashboard</a>
         {% if role != "student" %}<a class="nav-link" href="{% url 'dashboard:reports' %}"><span class="nav-icon">▤</span>Reports</a>{% endif %}
         {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/academics/"><span class="nav-icon">▦</span>Academics</a>{% endif %}
+        {% if role != "student" %}<a class="nav-link" href="{% url 'academics:timetable_index' %}"><span class="nav-icon">▥</span>Timetable</a>{% endif %}
         {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/attendance/"><span class="nav-icon">◷</span>Attendance</a>{% endif %}
         {% if role == "principal" %}<a class="nav-link" href="/assessments/"><span class="nav-icon">▧</span>Assessments</a>{% endif %}
         {% if role == "principal" or role == "teacher" %}<a class="nav-link" href="/homework/"><span class="nav-icon">▣</span>Homework</a>{% endif %}

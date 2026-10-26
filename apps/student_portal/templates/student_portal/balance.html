@@ -1,0 +1,86 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons humanize_rs %}
+{% block title %}Balance{% endblock %}
+{% block extra_style %}
+  .balance-hero { display: flex; align-items: center; gap: 22px; padding: 30px 34px; }
+  .balance-hero .tile { width: 72px; height: 72px; }
+  .balance-hero .big { font-size: 40px; }
+  .stat { padding: 22px 24px; }
+  .stat .tile { width: 48px; height: 48px; margin-bottom: 14px; border-radius: 50%; }
+  .month-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .month { padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  .month.due, .month.partial { border-color: var(--danger); }
+  .month-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-weight: 700; }
+  .txn { display: flex; align-items: center; gap: 16px; padding: 18px 24px; }
+  .txn .amount { color: var(--accent-strong); font-size: 18px; font-weight: 700; }
+  @media (max-width: 1100px) { .month-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 860px) { .balance-hero { padding: 22px 18px; gap: 16px; } .balance-hero .tile { width: 56px; height: 56px; } .balance-hero .big { font-size: 30px; } .month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .txn { padding: 16px 18px; flex-wrap: wrap; } }
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "wallet" 30 %}</span>
+  <div><h1>Balance</h1><p>Fees for session {{ year.name|default:"—" }}</p></div>
+</header>
+
+{% if not fees %}
+  <div class="card empty">You are not enrolled in a class for the current session yet.</div>
+{% else %}
+<section class="card balance-hero">
+  <span class="tile tile-soft">{% icon "wallet" 32 %}</span>
+  <div>
+    {% if fees.due_now %}<span class="chip due">PAYMENT DUE</span>{% else %}<span class="chip">PAID UP</span>{% endif %}
+    <div class="big" style="margin-top:8px">{{ fees.due_now|rs }}</div>
+    <div class="muted">Due now</div>
+  </div>
+</section>
+
+<div class="grid grid-3" style="margin-top:18px">
+  <div class="card stat"><span class="tile tile-soft">{% icon "layers" 22 %}</span><div class="big">{{ fees.year_total|rs }}</div><div class="muted">Total for the year</div></div>
+  <div class="card stat"><span class="tile tile-soft">{% icon "arrow-down" 22 %}</span><div class="big">{{ fees.paid|rs }}</div><div class="muted">Paid so far</div></div>
+  <div class="card stat"><span class="tile tile-soft" style="color:var(--info);background:var(--info-soft)">{% icon "arrow-up" 22 %}</span><div class="big">{{ fees.remaining|rs }}</div><div class="muted">Remaining this year</div></div>
+</div>
+
+<div class="section-label">{% icon "calendar" 18 %}Monthly fees · {{ fees.paid_months }} of {{ fees.months|length }} paid</div>
+{% if fees.months %}
+  <div class="month-grid">
+    {% for row in fees.months %}
+      <div class="month {{ row.status }}">
+        <div class="month-name">{{ row.month|date:"F Y" }}
+          <span class="chip {{ row.status }}">{% if row.status == "paid" %}Paid{% elif row.status == "partial" %}Part paid{% elif row.status == "due" %}Due{% else %}Upcoming{% endif %}</span>
+        </div>
+        <div class="value">{{ row.amount|rs }}</div>
+        <div class="label">{% if row.status == "partial" %}{{ row.balance|rs }} left · {% endif %}{% if row.charge and row.charge.due_date %}Due {{ row.charge.due_date|date:"j M" }}{% elif not row.charge %}Not billed yet{% endif %}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty">No monthly fees have been billed yet.</div>
+{% endif %}
+
+{% if fees.other_charges %}
+<div class="section-label">{% icon "clipboard" 18 %}Other charges</div>
+<section class="card divided">
+  {% for row in fees.other_charges %}
+    <div class="list-row"><div class="grow"><strong>{{ row.charge.description }}</strong><div class="label">{{ row.charge.get_category_display }}{% if row.charge.due_date %} · due {{ row.charge.due_date|date:"j M Y" }}{% endif %}</div></div><strong>{{ row.amount|rs }}</strong><span class="chip {{ row.status }}">{% if row.status == "paid" %}Paid{% elif row.status == "partial" %}Part paid{% elif row.status == "due" %}Due{% else %}Upcoming{% endif %}</span></div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="section-label">{% icon "arrow-down" 18 %}Payments</div>
+<section class="card divided">
+  {% for payment in fees.payments %}
+    <div class="txn">
+      <span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "arrow-down" 20 %}</span>
+      <div class="grow" style="flex:1;min-width:0">
+        <div class="amount">+{{ payment.amount|rs }}</div>
+        <div class="muted">{{ payment.payment_date|date:"j M Y" }} · {{ payment.get_method_display }}{% if payment.notes %} · {{ payment.notes }}{% endif %}</div>
+        <div class="label mono">Ref: {{ payment.receipt_reference|truncatechars:20 }}</div>
+      </div>
+      <span class="label">Payment received</span>
+    </div>
+  {% empty %}
+    <div class="empty">No payments have been recorded yet.</div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

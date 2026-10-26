@@ -1,0 +1,35 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Edit profile{% endblock %}
+{% block extra_style %}
+  .form { display: grid; gap: 18px; padding: 26px; }
+  .field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; font-weight: 600; }
+  .field input:not([type=file]), .field textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); outline: none; }
+  .field input:focus { border-color: var(--accent); }
+  .field input[type=file] { width: 100%; padding: 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+  .field .error { margin-top: 6px; color: var(--danger); font-size: 13px; }
+  .field .current { margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+  .actions { display: flex; gap: 10px; }
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "pencil" 28 %}</span>
+  <div><h1>Edit profile</h1><p>Update your photo and contact details</p></div>
+</header>
+<form class="card form" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% for error in form.non_field_errors %}<div class="field"><div class="error">{{ error }}</div></div>{% endfor %}
+  {% for field in form %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.name == "photo" and student.photo %}<div class="current">A photo is already uploaded. Choose a new file to replace it.</div>{% endif %}
+      {{ field }}
+      {% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  <div class="actions">
+    <button class="btn btn-primary" type="submit">Save changes</button>
+    <a class="btn" href="{% url 'student_portal:profile' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -10,7 +10,7 @@ from .models import FeeCharge, FeePayment, MONEY_ZERO
 class FeeChargeForm(forms.ModelForm):
     class Meta:
         model = FeeCharge
-        fields = ("student", "academic_year", "enrollment", "description", "amount", "due_date")
+        fields = ("student", "academic_year", "enrollment", "category", "description", "amount", "due_date")
         widgets = {"due_date": forms.DateInput(attrs={"type": "date"})}
 
     def __init__(self, *args, **kwargs):

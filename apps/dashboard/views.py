@@ -5,7 +5,7 @@ from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldError, PermissionDenied
 from django.db.models import Avg, Count, Sum
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 
 
@@ -328,6 +328,8 @@ def index(request):
     role = getattr(request.user, "role", "")
     if role not in ALLOWED_ROLES:
         raise PermissionDenied
+    if role == ROLE_STUDENT:
+        return redirect("student_portal:home")
     context = build_dashboard_context(request.user)
     return render(request, "dashboard/index.html", context)
 

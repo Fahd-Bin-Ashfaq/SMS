@@ -1,0 +1,25 @@
+{% extends "portal/base.html" %}
+{% block title %}Timetable{% endblock %}
+{% block page_heading %}Timetable{% endblock %}
+{% block content %}
+<section>
+  <h1 class="h2 mb-4">Class timetables</h1>
+  {% if classrooms %}
+    <div class="table-responsive"><table class="table table-striped align-middle">
+      <thead><tr><th>Class</th><th>Session</th><th>Class teacher</th><th></th></tr></thead>
+      <tbody>
+      {% for classroom, can_edit in classrooms %}
+        <tr>
+          <td>{{ classroom.name }} {{ classroom.section }}</td>
+          <td>{{ classroom.academic_year }}</td>
+          <td>{{ classroom.class_teacher|default:"—" }}</td>
+          <td class="text-end"><a class="btn btn-sm {% if can_edit %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'academics:timetable_detail' classroom.pk %}">{% if can_edit %}Manage{% else %}View{% endif %}</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <p class="text-muted">No classes are available.</p>
+  {% endif %}
+</section>
+{% endblock %}
