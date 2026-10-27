@@ -51,6 +51,15 @@ class Student(models.Model):
     date_of_birth = models.DateField(blank=True, null=True)
     guardian_name = models.CharField(max_length=200, blank=True)
     guardian_phone = models.CharField(max_length=30, blank=True)
+    guardian_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children",
+        limit_choices_to={"role": "parent"},
+        help_text="The parent login that can see this student's portal.",
+    )
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
     cnic = models.CharField("CNIC / B-Form", max_length=20, blank=True)
     email = models.EmailField(blank=True)

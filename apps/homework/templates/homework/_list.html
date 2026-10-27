@@ -16,7 +16,11 @@
             <td>{{ homework.assigned_by }}</td>
             <td>{{ homework.assigned_date|date:"DATE_FORMAT" }}</td>
             <td>{{ homework.due_date|date:"DATE_FORMAT" }}</td>
-            <td>
+            <td class="text-nowrap">
+              {% if homework.checked_count %}<div class="small mb-1"><span class="pill pill-paid">{{ homework.done_count }}/{{ homework.checked_count }} done</span></div>{% endif %}
+              {% if user.role == "teacher" or user.role == "principal" %}
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'homework:check' homework.pk %}">{% if homework.checked_count %}Re-check{% else %}Check work{% endif %}</a>
+              {% endif %}
               {% if homework.assigned_by_id == user.pk %}
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'homework:edit' homework.pk %}">Edit</a>
               {% endif %}

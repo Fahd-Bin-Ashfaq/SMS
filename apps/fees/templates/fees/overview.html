@@ -1,0 +1,73 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs %}
+{% block section_title %}Dashboard{% endblock %}
+{% block section_heading %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Office dashboard</h1>
+    <div class="text-muted">{{ money.month|date:"F Y" }} · figures for this month</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{% url 'fees:payment-create' %}">Receive fee</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:generate' %}">Add monthly fee</a>
+    <a class="btn btn-outline-secondary" href="{% url 'fees:expense-create' %}">Add expense</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-label">Students</div>
+    <div class="kpi-value">{{ total_students }}</div>
+    <div class="kpi-note">{{ classes|length }} classes</div>
+  </div>
+  <a class="kpi bad text-decoration-none" href="{% url 'fees:dues' %}">
+    <div class="kpi-label">Fee due</div>
+    <div class="kpi-value money">{{ total_due|rs }}</div>
+    <div class="kpi-note">{{ due_students }} student{{ due_students|pluralize }} · send reminders →</div>
+  </a>
+  <div class="kpi good">
+    <div class="kpi-label">Fee collected</div>
+    <div class="kpi-value money">{{ money.collected|rs }}</div>
+    <div class="kpi-note">this month</div>
+  </div>
+  <a class="kpi text-decoration-none" href="{% url 'fees:staff' %}">
+    <div class="kpi-label">Staff</div>
+    <div class="kpi-value">{{ money.staff_count }}</div>
+    <div class="kpi-note">Salaries {{ money.salary_bill|rs }} / month · {{ money.salary_remaining|rs }} unpaid</div>
+  </a>
+  <a class="kpi text-decoration-none" href="{% url 'fees:expenses' %}">
+    <div class="kpi-label">Expenses</div>
+    <div class="kpi-value money">{{ money.spent|rs }}</div>
+    <div class="kpi-note">this month, salaries included</div>
+  </a>
+  <div class="kpi {% if money.net < 0 %}bad{% else %}good{% endif %}">
+    <div class="kpi-label">Balance</div>
+    <div class="kpi-value money">{{ money.net|rs }}</div>
+    <div class="kpi-note">collected − expenses</div>
+  </div>
+</div>
+
+<section class="panel-card">
+  <h2>Fees by class</h2>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Class</th><th class="text-end">Students</th><th class="text-end">Paid</th><th class="text-end">Due</th><th class="text-end">Due amount</th><th></th></tr></thead>
+      <tbody>
+        {% for row in classes %}
+          <tr>
+            <td><strong>{{ row.classroom.name }} {{ row.classroom.section }}</strong></td>
+            <td class="text-end">{{ row.students }}</td>
+            <td class="text-end"><span class="pill pill-paid">{{ row.paid }}</span></td>
+            <td class="text-end">{% if row.due %}<span class="pill pill-due">{{ row.due }}</span>{% else %}<span class="pill pill-muted">0</span>{% endif %}</td>
+            <td class="text-end money">{{ row.due_amount|rs }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'fees:dues' %}?class={{ row.classroom.pk }}&show=all">View</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted">No classes in the active academic year.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

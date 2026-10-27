@@ -1,0 +1,44 @@
+{% extends "portal/base.html" %}
+{% block title %}Import students · School Portal{% endblock %}
+{% block page_heading %}Students{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Import students from Excel</h1>
+  <p class="text-muted mb-4">Add many students at once{% if year %} into <strong>{{ year.name }}</strong>{% endif %}. If a student's admission number already exists, their details and class are updated instead of creating a duplicate.</p>
+
+  {% if result.errors %}
+    <div class="alert alert-danger">
+      <strong>Nothing was imported.</strong> Fix these rows in your file and upload it again:
+      <ul class="mb-0 mt-2">
+        {% for row, error in result.errors|slice:":50" %}<li>{% if row %}Row {{ row }}: {% endif %}{{ error }}</li>{% endfor %}
+      </ul>
+      {% if result.errors|length > 50 %}<div class="mt-2">…and {{ result.errors|length|add:"-50" }} more.</div>{% endif %}
+    </div>
+  {% endif %}
+
+  <section class="form-card mb-4">
+    <h2 class="h6 mb-2">1. Download the template</h2>
+    <p class="text-muted small mb-3">Open it in Excel, fill one student per row, and save. You can also use your own sheet if the first row has these column names.</p>
+    <a class="btn btn-outline-primary" href="{% url 'academics:student_import_template' %}">Download template (.csv)</a>
+    <div class="mt-3 small">
+      <strong>Columns:</strong>
+      {% for column in columns %}<code>{{ column }}</code>{% if column in required %}<span class="text-danger">*</span>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+      <div class="form-text">* required. Dates as DD/MM/YYYY. Gender as Male or Female. Class and section must match a class, e.g. "Grade 6" and "A".</div>
+    </div>
+  </section>
+
+  <form method="post" enctype="multipart/form-data" class="form-card">
+    {% csrf_token %}
+    <h2 class="h6 mb-3">2. Upload the filled file</h2>
+    <div class="mb-3">
+      <label class="form-label" for="id_file">Excel (.xlsx) or CSV file <span class="text-danger">*</span></label>
+      <input id="id_file" type="file" name="file" accept=".xlsx,.csv" required>
+    </div>
+    <label class="d-flex align-items-center gap-2 mb-2"><input type="checkbox" name="create_classes" value="1"> Create classes that do not exist yet</label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"{% if not year %} disabled{% endif %}>Import students</button>
+      <a class="btn btn-outline-secondary" href="{% url 'academics:student_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

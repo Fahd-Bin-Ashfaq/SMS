@@ -1,0 +1,71 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Homework{% endblock %}
+{% block extra_style %}
+  .hw-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .hw-filters a { padding: 7px 14px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600; }
+  .hw-filters a:hover { border-color: var(--accent); color: var(--accent-strong); }
+  .hw-filters a.active { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .hw-item { align-items: flex-start; transition: background .12s; }
+  a.hw-item:hover { background: var(--surface-2); }
+  a.hw-item:hover strong { color: var(--accent-strong); }
+  .hw-item .grow { min-width: 0; }
+  .hw-item .desc { display: -webkit-box; margin-top: 6px; overflow: hidden; color: var(--muted); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .hw-item .chev { align-self: center; color: var(--faint); font-size: 20px; line-height: 1; }
+  .hw-item .chip { align-self: center; }
+  .hw-item.is-urgent { box-shadow: inset 3px 0 0 var(--danger); }
+  .hw-past strong { color: var(--muted); }
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "clipboard" 30 %}</span>
+  <div><h1>Homework</h1><p>{% if classroom %}Assignments for {{ classroom.name }} {{ classroom.section }}{% else %}You are not enrolled in a class yet{% endif %}</p></div>
+</header>
+
+{% if subjects|length > 1 %}
+<nav class="hw-filters" aria-label="Filter by subject">
+  <a class="{% if not selected_subject %}active{% endif %}" href="{% url 'student_portal:homework' %}">All subjects</a>
+  {% for subject in subjects %}
+    <a class="{% if selected_subject == subject %}active{% endif %}" href="?subject={{ subject.pk }}">{{ subject.name }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<div class="section-label">{% icon "calendar" 18 %}To do · {{ upcoming|length }}</div>
+<section class="card divided">
+  {% for item in upcoming %}
+    <a class="list-row hw-item{% if item.days_left <= 1 %} is-urgent{% endif %}" href="{% url 'student_portal:homework_detail' item.pk %}">
+      <span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span>
+      <div class="grow">
+        <strong>{{ item.title }}</strong>
+        <div class="label">{{ item.subject.name }}{% if item.assigned_by %} · {{ item.assigned_by.get_full_name|default:item.assigned_by.username }}{% endif %} · assigned {{ item.assigned_date|date:"j M" }}</div>
+        {% if item.description %}<div class="desc">{{ item.description }}</div>{% endif %}
+      </div>
+      {% if item.checked_done is True %}<span class="chip">✓ Checked: done</span>{% elif item.checked_done is False %}<span class="chip absent">Checked: not done</span>{% endif %}
+      {% if item.days_left == 0 %}<span class="chip due">Due today</span>
+      {% elif item.days_left == 1 %}<span class="chip late">Due tomorrow</span>
+      {% else %}<span class="chip upcoming">Due {{ item.due_date|date:"D, j M" }}</span>{% endif %}
+      <span class="chev" aria-hidden="true">›</span>
+    </a>
+  {% empty %}
+    <div class="empty">Nothing due — you're all caught up.</div>
+  {% endfor %}
+</section>
+
+{% if past %}
+<div class="section-label">{% icon "clock" 18 %}Past homework</div>
+<section class="card divided hw-past">
+  {% for item in past %}
+    <a class="list-row hw-item" href="{% url 'student_portal:homework_detail' item.pk %}">
+      <div class="grow">
+        <strong>{{ item.title }}</strong>
+        <div class="label">{{ item.subject.name }} · due {{ item.due_date|date:"j M Y" }}</div>
+        {% if item.description %}<div class="desc">{{ item.description }}</div>{% endif %}
+      </div>
+      {% if item.checked_done is True %}<span class="chip">✓ Done</span>{% elif item.checked_done is False %}<span class="chip absent">Not done</span>{% else %}<span class="chip upcoming">Closed</span>{% endif %}
+      <span class="chev" aria-hidden="true">›</span>
+    </a>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

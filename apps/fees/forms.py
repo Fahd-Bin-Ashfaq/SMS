@@ -4,7 +4,7 @@ from django import forms
 from django.db.models import Sum
 
 from apps.academics.models import AcademicYear, Enrollment, Student
-from .models import FeeCharge, FeePayment, MONEY_ZERO
+from .models import Expense, FeeCharge, FeePayment, MONEY_ZERO, StaffMember
 
 
 class FeeChargeForm(forms.ModelForm):
@@ -83,3 +83,26 @@ class FeePaymentForm(forms.ModelForm):
             if amount > charged - paid:
                 self.add_error("amount", "Payment cannot exceed the student's outstanding fees.")
         return cleaned
+
+
+class StaffMemberForm(forms.ModelForm):
+    class Meta:
+        model = StaffMember
+        fields = ("name", "designation", "phone", "monthly_salary", "joined_on", "is_active")
+        widgets = {"joined_on": forms.DateInput(attrs={"type": "date"})}
+        labels = {"monthly_salary": "Monthly salary (Rs)", "is_active": "Currently working here"}
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ("category", "description", "amount", "date")
+        widgets = {"date": forms.DateInput(attrs={"type": "date"})}
+        labels = {"amount": "Amount (Rs)"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Salaries are paid from the staff page so each month is recorded once per person.
+        self.fields["category"].choices = [
+            choice for choice in Expense.Category.choices if choice[0] != Expense.Category.SALARY
+        ]

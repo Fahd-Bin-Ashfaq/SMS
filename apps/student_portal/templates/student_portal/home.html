@@ -77,10 +77,10 @@
 {% if homework or latest_notification %}
 <div class="grid grid-2" style="margin-top:18px">
   <section class="card">
-    <div class="list-row"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div class="grow"><strong>Homework due</strong><div class="label">Next deadlines for your class</div></div></div>
+    <div class="list-row"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div class="grow"><strong>Homework due</strong><div class="label">Next deadlines for your class</div></div><a class="btn" href="{% url 'student_portal:homework' %}">View all</a></div>
     <div class="divided">
       {% for item in homework %}
-        <div class="list-row"><div class="grow"><strong>{{ item.title }}</strong><div class="label">{{ item.subject.name }}</div></div><span class="chip upcoming">{{ item.due_date|date:"D, j M" }}</span></div>
+        <a class="list-row" href="{% url 'student_portal:homework_detail' item.pk %}"><div class="grow"><strong>{{ item.title }}</strong><div class="label">{{ item.subject.name }}</div></div><span class="chip upcoming">{{ item.due_date|date:"D, j M" }}</span></a>
       {% empty %}
         <div class="empty">Nothing due right now.</div>
       {% endfor %}
@@ -102,7 +102,7 @@
   <a class="card shortcut" href="{% url 'student_portal:id_card' %}"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "id-card" 22 %}</span>View ID card</a>
   <a class="card shortcut" href="{% url 'student_portal:classroom' %}#timetable"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "calendar" 22 %}</span>Timetable</a>
   <a class="card shortcut" href="{% url 'student_portal:classroom' %}#attendance"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "calendar-check" 22 %}</span>Attendance</a>
-  <a class="card shortcut" href="{% url 'student_portal:classroom' %}#homework"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "clipboard" 22 %}</span>Homework</a>
+  <a class="card shortcut" href="{% url 'student_portal:homework' %}"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "clipboard" 22 %}</span>Homework</a>
   <a class="card shortcut" href="{% url 'student_portal:balance' %}"><span class="tile tile-sm tile-soft" style="border-radius:50%">{% icon "wallet" 22 %}</span>Fee balance</a>
 </nav>
 {% endblock %}

@@ -2,7 +2,7 @@
 {% block title %}Add fee charge{% endblock %}
 {% block content %}
 <h1 class="h3">Add fee charge</h1>
-<form method="post" class="card card-body">
+<form method="post" class="card card-body form-narrow">
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}

@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="h3">Record fee payment</h1>
 <p class="text-muted">Payments are retained as immutable records and cannot be edited or deleted. Contact the principal to address a recorded error.</p>
-<form method="post" class="card card-body">
+<form method="post" class="card card-body form-narrow">
   {% csrf_token %}
   {{ form.non_field_errors }}
   {% for field in form %}

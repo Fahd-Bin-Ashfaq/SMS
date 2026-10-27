@@ -1,0 +1,63 @@
+{% extends "homework/base.html" %}
+{% block title %}Check homework{% endblock %}
+{% block content %}
+<style>
+  .hw-check-list { display: grid; gap: 8px; }
+  .hw-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid #e3e8f0; border-radius: 12px; background: #fff; cursor: pointer; }
+  .hw-check:has(input:checked) { border-color: #9fd8b9; background: #f3fbf6; }
+  .hw-check input { position: absolute; opacity: 0; pointer-events: none; }
+  .hw-check .state { min-width: 96px; padding: 6px 12px; border-radius: 99px; background: #fdecee; color: #b42332; font-size: 13px; font-weight: 700; text-align: center; }
+  .hw-check:has(input:checked) .state { background: #1d9a5b; color: #fff; }
+  .hw-check .state::before { content: "Not done"; }
+  .hw-check:has(input:checked) .state::before { content: "✓ Done"; }
+  .hw-check:has(input:focus-visible) { outline: 2px solid #626fe7; outline-offset: 2px; }
+</style>
+<div class="form-narrow">
+  <a class="small text-muted" href="{% url 'homework:index' %}">‹ All homework</a>
+  <h1 class="h3 mt-2 mb-1">{{ homework.title }}</h1>
+  <p class="text-muted">{{ homework.classroom.name }} {{ homework.classroom.section }} · {{ homework.subject.name }} · due {{ homework.due_date|date:"D, j M" }}</p>
+  <p class="mb-3">Tap a student to switch between <strong>Done</strong> and <strong>Not done</strong>. Students and parents see the result in their portal.</p>
+
+  <form method="post" data-check>
+    {% csrf_token %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <button class="btn btn-sm btn-outline-success" type="button" data-all="1">Mark all done</button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-all="0">Clear all</button>
+      <span class="ms-auto small fw-semibold" data-count></span>
+    </div>
+    <div class="hw-check-list">
+      {% for student in students %}
+        <label class="hw-check">
+          <input type="checkbox" name="done" value="{{ student.pk }}"{% if student.check_status or not already_checked %} checked{% endif %}>
+          <span><strong>{{ student.first_name }} {{ student.last_name }}</strong> <span class="text-muted small">{{ student.admission_number }}</span></span>
+          <span class="state" aria-hidden="true"></span>
+        </label>
+      {% empty %}
+        <p class="text-muted">No active students in this class.</p>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save check</button>
+      <a class="btn btn-outline-secondary" href="{% url 'homework:index' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  (function () {
+    var form = document.querySelector("[data-check]");
+    var boxes = form.querySelectorAll("input[name=done]");
+    function count() {
+      var done = Array.prototype.filter.call(boxes, function (box) { return box.checked; }).length;
+      form.querySelector("[data-count]").textContent = done + " of " + boxes.length + " done";
+    }
+    form.querySelectorAll("[data-all]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        boxes.forEach(function (box) { box.checked = button.dataset.all === "1"; });
+        count();
+      });
+    });
+    form.addEventListener("change", count);
+    count();
+  })();
+</script>
+{% endblock %}

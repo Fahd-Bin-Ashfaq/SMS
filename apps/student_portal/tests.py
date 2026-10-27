@@ -18,6 +18,7 @@ from apps.academics.models import (
 )
 from apps.academics.timetable import next_period
 from apps.fees.models import FeeCharge, FeePayment
+from apps.homework.models import Homework
 
 from .models import Notification
 from .services import fee_overview
@@ -63,6 +64,7 @@ class StudentPortalAccessTests(PortalFixture):
         for url in (
             "/portal/",
             "/portal/classroom/",
+            "/portal/homework/",
             "/portal/study-guides/",
             "/portal/balance/",
             "/portal/id-card/",
@@ -95,6 +97,25 @@ class StudentPortalAccessTests(PortalFixture):
         self.assertContains(response, "For everyone")
         self.assertContains(response, "For my class")
         self.assertNotContains(response, "For another class")
+
+    def test_homework_page_shows_own_class_split_into_due_and_past(self):
+        today = timezone.localdate()
+        common = {"subject": self.subject, "assigned_by": self.class_teacher_user, "assigned_date": today - timedelta(days=5)}
+        due = Homework.objects.create(classroom=self.classroom, title="Due work", due_date=today + timedelta(days=2), **common)
+        Homework.objects.create(classroom=self.classroom, title="Old work", due_date=today - timedelta(days=1), **common)
+        other = Homework.objects.create(classroom=self.other_classroom, title="Other class work", due_date=today + timedelta(days=2), **common)
+        self.client.force_login(self.student_user)
+        response = self.client.get("/portal/homework/")
+        self.assertEqual([item.title for item in response.context["upcoming"]], ["Due work"])
+        self.assertEqual([item.title for item in response.context["past"]], ["Old work"])
+        self.assertNotContains(response, "Other class work")
+        self.assertEqual(response.context["due_homework"], 1)
+        self.assertContains(response, f"/portal/homework/{due.pk}/")
+
+        detail = self.client.get(f"/portal/homework/{due.pk}/")
+        self.assertContains(detail, "Due work")
+        self.assertContains(detail, "2 days left")
+        self.assertEqual(self.client.get(f"/portal/homework/{other.pk}/").status_code, 404)
 
     def test_profile_edit_cannot_change_identity_fields(self):
         self.client.force_login(self.student_user)

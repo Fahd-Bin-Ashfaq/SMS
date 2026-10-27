@@ -1,0 +1,52 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs %}
+{% block section_title %}Staff{% endblock %}
+{% block section_heading %}Staff{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <h1 class="h3 mb-0">Staff &amp; salaries</h1>
+  <a class="btn btn-primary" href="{% url 'fees:staff-create' %}">Add staff member</a>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">Staff</div><div class="kpi-value">{{ money.staff_count }}</div><div class="kpi-note">currently working</div></div>
+  <div class="kpi"><div class="kpi-label">Salaries per month</div><div class="kpi-value money">{{ money.salary_bill|rs }}</div></div>
+  <div class="kpi good"><div class="kpi-label">Paid for {{ month|date:"F" }}</div><div class="kpi-value money">{{ money.salary_paid|rs }}</div></div>
+  <div class="kpi {% if money.salary_remaining %}bad{% endif %}"><div class="kpi-label">Still to pay</div><div class="kpi-value money">{{ money.salary_remaining|rs }}</div></div>
+</div>
+
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th class="text-end">Monthly salary</th><th>{{ month|date:"F" }}</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for member in staff %}
+          <tr{% if not member.is_active %} class="text-muted"{% endif %}>
+            <td><strong>{{ member.name }}</strong>{% if not member.is_active %} <span class="pill pill-muted">Left</span>{% endif %}</td>
+            <td>{{ member.designation }}</td>
+            <td>{{ member.phone|default:"—" }}</td>
+            <td class="text-end money">{{ member.monthly_salary|rs }}</td>
+            <td>
+              {% if member.paid_this_month %}<span class="pill pill-paid">Paid</span>
+              {% elif member.is_active %}<span class="pill pill-due">Unpaid</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                {% if member.is_active and not member.paid_this_month %}
+                  <form method="post" action="{% url 'fees:staff-pay' member.pk %}" onsubmit="return confirm('Pay {{ member.monthly_salary|rs }} to {{ member.name|escapejs }} for {{ month|date:"F Y" }}?')">
+                    {% csrf_token %}<button class="btn btn-sm btn-success" type="submit">Pay salary</button>
+                  </form>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'fees:staff-edit' member.pk %}">Edit</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No staff added yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

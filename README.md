@@ -106,6 +106,7 @@ All demo accounts use the same local-only password, `1234`:
 | Office staff | `office` |
 | Teacher | `teacher1` … `teacher6` (`teacher1` is class teacher of Grade 6 A) |
 | Student | `student` |
+| Parent | `parent` (two children, switch between them in the sidebar) |
 
 ### Student portal
 
@@ -116,3 +117,13 @@ Timetables are managed at `/academics/timetable/`: principals can edit every cla
 Do not use demo credentials or fictional sample data in a production deployment. The student account only sees its linked student profile and its own attendance/results.
 
 Run tests with `python manage.py test`. Generate app migrations after model integration with `python manage.py makemigrations` and apply them with `python manage.py migrate`. Review generated migrations before deployment.
+
+### Running a real school
+
+- **School logo:** put `logo.png` (or `.jpg`/`.svg`) in `static/school/`. It shows on the sidebar, login page, fee receipts and ID cards. Set `SCHOOL_NAME`, `SCHOOL_CAMPUS` and `SCHOOL_CONTACT` for the receipt header.
+- **Add students in bulk:** Students → *Import from Excel*. Download the template, fill one student per row and upload `.xlsx` or `.csv`. If any row has a problem nothing is saved and every problem is listed by row number.
+- **Monthly fees:** Fees → *Add monthly fee* bills one month's tuition to every active student, with a fee per class. Students already billed for that month are skipped.
+- **Receipts:** each payment prints on A4 as a parent copy and a school copy, with the amount in words and the remaining balance.
+- **Parent logins:** Students → *Parent logins* creates a login whose username is the guardian's phone number and shares the password on WhatsApp. Brothers and sisters with the same guardian phone share one login.
+- **Homework checking:** teachers use *Check work* on a homework to mark each student done or not done; students and parents see it in the portal.
+- **New academic year:** create the next year under Academic years, then (as principal) *Promote students to next year*: copy the classes, confirm where each class goes, tick students who repeat a grade, and the top class leaves school.

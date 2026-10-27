@@ -41,7 +41,7 @@ class AttendanceRowForm(forms.Form):
         queryset=Enrollment.objects.none(),
         widget=forms.HiddenInput,
     )
-    status = forms.ChoiceField(choices=AttendanceRecord.Status.choices)
+    status = forms.ChoiceField(choices=AttendanceRecord.Status.choices, widget=forms.RadioSelect)
 
     def __init__(self, *args, enrollments=None, **kwargs):
         super().__init__(*args, **kwargs)

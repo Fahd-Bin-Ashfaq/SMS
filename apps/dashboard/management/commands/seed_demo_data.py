@@ -20,7 +20,7 @@ from apps.academics.models import (
 )
 from apps.assessments.models import Exam, ExamSubject, StudentMark
 from apps.attendance.models import AttendanceRecord
-from apps.fees.models import FeeCharge, FeePayment
+from apps.fees.models import Expense, FeeCharge, FeePayment, StaffMember
 from apps.homework.models import Homework
 from apps.student_portal.models import Notification, StudyGuide
 
@@ -29,6 +29,18 @@ DEMO_PASSWORD = "1234"
 STUDENTS_PER_CLASS = 10
 ATTENDANCE_DAYS = 10
 MONTHLY_FEE = Decimal("3000.00")
+# Support staff without a login: name, designation, monthly salary.
+SUPPORT_STAFF = (
+    ("Bashir Ahmed", "Security guard", Decimal("28000.00")),
+    ("Nasreen Bibi", "Cleaner", Decimal("25000.00")),
+    ("Kashif Ali", "Peon", Decimal("25000.00")),
+)
+MONTHLY_EXPENSES = (
+    (Expense.Category.UTILITIES, "Electricity bill", Decimal("18500.00"), 12),
+    (Expense.Category.UTILITIES, "Gas & water bill", Decimal("4200.00"), 14),
+    (Expense.Category.UTILITIES, "Internet", Decimal("3000.00"), 5),
+    (Expense.Category.SUPPLIES, "Stationery and chalk", Decimal("6200.00"), 3),
+)
 
 CLASSROOMS = (
     ("Grade 6", "A"),
@@ -203,6 +215,8 @@ class Command(BaseCommand):
                 self.seed_exam(rng, year, classroom, students, teachers, today)
             self.seed_fees(rng, year, students, office, today)
 
+        self.seed_staff_and_expenses(principal, office, teachers, today)
+
         for title, message in NOTICES:
             Notification.objects.get_or_create(
                 title=title,
@@ -221,9 +235,17 @@ class Command(BaseCommand):
         all_students[0][0].user = student_user
         all_students[0][0].save(update_fields=["user"])
 
+        # A parent with two children (in different classes) to show the child switcher.
+        parent_user = self.demo_user(User, "parent", "Imran", all_students[0][0].last_name, "parent")
+        children = (all_students[0][0], all_students[STUDENTS_PER_CLASS][0])
+        Student.objects.filter(guardian_user=parent_user).exclude(pk__in=[c.pk for c in children]).update(guardian_user=None)
+        for child in children:
+            child.guardian_user = parent_user
+            child.save(update_fields=["guardian_user"])
+
         self.stdout.write(f"  Classes: {len(CLASSROOMS)} ({STUDENTS_PER_CLASS} students each)")
         self.stdout.write(f"  Students: {len(all_students)} fictional records")
-        self.stdout.write("  Logins: principal, office, teacher1 to teacher6, student")
+        self.stdout.write("  Logins: principal, office, teacher1 to teacher6, student, parent")
         self.stdout.write("  Student login 'student' is linked to DEMO-001")
 
     @staticmethod
@@ -361,8 +383,24 @@ class Command(BaseCommand):
             month = date(month.year + month.month // 12, month.month % 12 + 1, 1)
 
         for student, enrollment in students:
-            # Most students are fully paid; some owe for the latest month.
-            paid_months = len(months) - (1 if rng.random() < 0.3 else 0)
+            # Most students are fully paid; some owe for the latest month. Decided by
+            # admission number (not the random generator) so reruns pick the same students.
+            number = int(student.admission_number.rsplit("-", 1)[-1])
+            paid_months = len(months) - (1 if number % 3 == 0 else 0)
+            if number % 4 == 0 and months:
+                # An unpaid activity charge this month, so dues show up even after reruns.
+                FeeCharge.objects.get_or_create(
+                    student=student,
+                    enrollment=enrollment,
+                    description=f"Sports & activity fund — {months[-1]:%B %Y}",
+                    defaults={
+                        "category": FeeCharge.Category.ACTIVITY,
+                        "academic_year": year,
+                        "amount": Decimal("1500.00"),
+                        "due_date": min(today, months[-1] + timedelta(days=4)),
+                        "created_by": office,
+                    },
+                )
             for index, month in enumerate(months):
                 label = f"Tuition fee — {month:%B %Y}"
                 FeeCharge.objects.get_or_create(
@@ -390,6 +428,59 @@ class Command(BaseCommand):
                         notes=label,
                         received_by=office,
                     )
+
+    @staticmethod
+    def seed_staff_and_expenses(principal, office, teachers, today):
+        people = [
+            (principal, "Principal", Decimal("120000.00")),
+            (office, "Accountant", Decimal("45000.00")),
+        ] + [(user, "Teacher", Decimal("55000.00")) for user, _teacher, _subject in teachers]
+        staff = []
+        for user, designation, salary in people:
+            member, _ = StaffMember.objects.update_or_create(
+                user=user,
+                defaults={
+                    "name": user.get_full_name() or user.username,
+                    "designation": designation,
+                    "monthly_salary": salary,
+                    "is_active": True,
+                },
+            )
+            staff.append(member)
+        for name, designation, salary in SUPPORT_STAFF:
+            member, _ = StaffMember.objects.update_or_create(
+                name=name,
+                user=None,
+                defaults={"designation": designation, "monthly_salary": salary, "is_active": True},
+            )
+            staff.append(member)
+
+        this_month = today.replace(day=1)
+        last_month = (this_month - timedelta(days=1)).replace(day=1)
+        # Last month is fully paid; this month only the support staff so far.
+        for month, members in ((last_month, staff), (this_month, staff[-len(SUPPORT_STAFF):])):
+            for member in members:
+                Expense.objects.get_or_create(
+                    staff=member,
+                    salary_month=month,
+                    defaults={
+                        "category": Expense.Category.SALARY,
+                        "description": f"Salary — {member.name} — {month:%B %Y}",
+                        "amount": member.monthly_salary,
+                        "date": min(today, month + timedelta(days=4)),
+                        "recorded_by": office,
+                    },
+                )
+        for month in (last_month, this_month):
+            for category, description, amount, day in MONTHLY_EXPENSES:
+                spent_on = month + timedelta(days=day - 1)
+                if spent_on > today:
+                    continue
+                Expense.objects.get_or_create(
+                    category=category,
+                    description=f"{description} — {month:%B %Y}",
+                    defaults={"amount": amount, "date": spent_on, "recorded_by": office},
+                )
 
     @staticmethod
     def demo_user(User, username, first_name, last_name, role):
