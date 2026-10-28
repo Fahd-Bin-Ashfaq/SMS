@@ -1,0 +1,74 @@
+{% extends "portal/base.html" %}
+{% load humanize_rs %}
+{% block title %}Teachers · School Portal{% endblock %}
+{% block page_heading %}Teachers{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Teachers</h1>
+  <a class="btn btn-primary" href="{% url 'academics:teacher_create' %}">Add teacher</a>
+</div>
+
+{% include "accounts/_credentials.html" %}
+
+<div class="panel-card mb-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Teacher</th><th>Classes &amp; subjects</th><th class="text-end">Salary</th><th>Login</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for teacher in teachers %}
+          <tr{% if not teacher.user.is_active %} class="text-muted"{% endif %}>
+            <td>
+              <strong>{{ teacher.user.get_full_name|default:teacher.user.username }}</strong>
+              {% if teacher.homeroom %}<div class="small"><span class="pill pill-paid">Class teacher · {{ teacher.homeroom.name }} {{ teacher.homeroom.section }}</span></div>{% endif %}
+              {% if teacher.staff.phone %}<div class="small text-muted">{{ teacher.staff.phone }}</div>{% endif %}
+            </td>
+            <td class="small">
+              {% for assignment in teacher.current_assignments %}{{ assignment.classroom.name }} {{ assignment.classroom.section }} · {{ assignment.subject.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}<span class="text-muted">Not assigned</span>{% endfor %}
+            </td>
+            <td class="text-end money">{% if teacher.staff %}{{ teacher.staff.monthly_salary|rs }}{% else %}—{% endif %}</td>
+            <td>
+              <span class="font-monospace small">{{ teacher.user.username }}</span>
+              {% if teacher.user.is_active %}<div><span class="pill pill-paid">Active</span></div>{% else %}<div><span class="pill pill-muted">Left</span></div>{% endif %}
+            </td>
+            <td class="text-end">
+              <form method="post" action="{% url 'academics:teacher_action' teacher.pk %}" class="d-inline-flex flex-wrap justify-content-end gap-2">
+                {% csrf_token %}
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'academics:teacher_update' teacher.pk %}">Edit</a>
+                {% if teacher.user.is_active %}
+                  <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="reset" onclick="return confirm('Make a new password? The old one will stop working.')">New password</button>
+                  <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="deactivate" onclick="return confirm('This teacher has left the school? They will no longer be able to sign in.')">Left school</button>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-success" type="submit" name="action" value="activate">Rejoin</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No teachers yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<section class="panel-card">
+  <h2>Subjects</h2>
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {% for subject in subjects %}<span class="pill pill-muted">{{ subject.name }} · {{ subject.code }}</span>{% empty %}<span class="text-muted">No subjects yet.</span>{% endfor %}
+  </div>
+  <form method="post" class="row g-2 align-items-end" novalidate>
+    {% csrf_token %}
+    <div class="col-sm-5">
+      <label class="form-label" for="{{ subject_form.name.id_for_label }}">New subject</label>
+      {{ subject_form.name }}
+      {% for error in subject_form.name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-sm-4">
+      <label class="form-label" for="{{ subject_form.code.id_for_label }}">Code</label>
+      {{ subject_form.code }}
+      {% for error in subject_form.code.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-sm-3"><button class="btn btn-outline-primary w-100" type="submit">Add subject</button></div>
+  </form>
+</section>
+{% endblock %}

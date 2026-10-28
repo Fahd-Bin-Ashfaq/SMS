@@ -16,31 +16,381 @@
   </form>
 
   {% if formset %}
-    <h2>{{ classroom }} — {{ attendance_date }}</h2>
-    <form method="post">
+    <style>
+      .att-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+      .att-head h2 { margin: 0; font-size: 20px; }
+      .att-modes { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid #e3e8f0; border-radius: 12px; background: #eef1f6; }
+      .att-modes button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: transparent; color: #68758a; font-size: 14px; font-weight: 650; }
+      .att-modes button[aria-pressed=true] { background: #fff; color: #1c2940; box-shadow: 0 1px 4px #182c4c1a; }
+      .att-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+      .att-status .pill { padding: 6px 12px; border-radius: 99px; font-size: 13px; font-weight: 700; }
+      .pill.t-present { background: #e7f6ee; color: #1d7a4c; }
+      .pill.t-absent { background: #fdecee; color: #b42332; }
+      .pill.t-late { background: #fdf3dc; color: #8a5a00; }
+      .att-saved { margin-left: auto; color: #68758a; font-size: 13px; }
+      .att-saved.is-error { color: #b42332; font-weight: 650; }
+      .att-saved.is-saving { color: #626fe7; }
+
+      /* List mode */
+      .att-tools { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+      .att-tools .btn { min-height: 40px; font-size: 13px; }
+      .att-search { flex: 1 1 240px; min-height: 40px; }
+      .att-choices { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid #e3e8f0; border-radius: 12px; background: #f1f4f9; }
+      .att-choices label { position: relative; margin: 0; cursor: pointer; }
+      .att-choices input { position: absolute; opacity: 0; pointer-events: none; }
+      .att-btn { display: flex; min-width: 92px; height: 40px; padding: 0 14px; align-items: center; justify-content: center; gap: 7px; border-radius: 9px; color: #68758a; font-size: 14px; font-weight: 650; transition: background .12s, color .12s; user-select: none; }
+      .att-btn:hover { background: #fff; color: #283752; }
+      .att-btn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .45; }
+      .att-choices input:focus-visible + .att-btn { outline: 2px solid #626fe7; outline-offset: 1px; }
+      .att-choices input:checked + .att-btn { color: #fff; box-shadow: 0 2px 6px #182c4c1f; }
+      .att-choices input:checked + .att-btn::before { background: #fff; opacity: 1; }
+      .att-choices input[value=present]:checked + .att-btn { background: #1d9a5b; }
+      .att-choices input[value=absent]:checked + .att-btn { background: #c8323f; }
+      .att-choices input[value=late]:checked + .att-btn { background: #d99a12; }
+      .att-letter { display: none; }
+      .att-table td { vertical-align: middle; }
+      .att-adm-tag { padding: 3px 8px; border: 1px solid #e3e8f0; border-radius: 7px; background: #f7f8fc; color: #68758a; font: 600 12px ui-monospace, Consolas, monospace; }
+      .att-table tr:has(input[value=absent]:checked) td { background: #fff5f6; }
+      .att-table tr:has(input[value=late]:checked) td { background: #fffaee; }
+      .att-save { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 0; background: #f4f7fb; }
+      .att-save .btn { min-height: 44px; font-size: 14px; }
+
+      /* Quick mark mode */
+      .att-quick { display: grid; justify-items: center; gap: 18px; padding: 8px 0 24px; }
+      .att-progress { width: min(100%, 440px); }
+      .att-progress-text { margin-bottom: 6px; color: #68758a; font-size: 13px; text-align: center; }
+      .att-progress-bar { height: 6px; overflow: hidden; border-radius: 99px; background: #e3e8f0; }
+      .att-progress-bar span { display: block; height: 100%; border-radius: inherit; background: #626fe7; transition: width .2s; }
+      .att-stage { position: relative; width: min(100%, 440px); }
+      .att-card { position: relative; display: grid; justify-items: center; gap: 10px; padding: 34px 24px 28px; border: 1px solid #e3e8f0; border-radius: 20px; background: #fff; box-shadow: 0 10px 30px #182c4c14; text-align: center; touch-action: pan-y; cursor: grab; user-select: none; }
+      .att-card.is-dragging { cursor: grabbing; }
+      .att-card.is-animating { transition: transform .22s ease, opacity .22s ease; }
+      .att-avatar { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: #e8eafe; color: #545ed3; font-size: 26px; font-weight: 750; }
+      .att-card-name { margin: 0; color: #1c2940; font-size: 24px; font-weight: 750; line-height: 1.25; letter-spacing: -.02em; }
+      .att-card-state { font-size: 14px; font-weight: 650; }
+      .att-card-state.present { color: #1d7a4c; } .att-card-state.absent { color: #b42332; } .att-card-state.late { color: #8a5a00; }
+      .att-stamp { position: absolute; top: 18px; padding: 4px 12px; border: 3px solid; border-radius: 10px; font-size: 18px; font-weight: 800; letter-spacing: .08em; opacity: 0; pointer-events: none; }
+      .att-stamp.absent { left: 18px; color: #c8323f; transform: rotate(-12deg); }
+      .att-stamp.present { right: 18px; color: #1d9a5b; transform: rotate(12deg); }
+      .att-actions { display: flex; align-items: center; gap: 22px; }
+      .att-round { display: grid; width: 72px; height: 72px; place-items: center; border-radius: 50%; border: 2px solid; background: #fff; font-size: 30px; line-height: 1; cursor: pointer; transition: transform .1s; }
+      .att-round:active { transform: scale(.94); }
+      .att-round.absent { border-color: #e6a3aa; color: #c8323f; }
+      .att-round.present { border-color: #1d9a5b; background: #1d9a5b; color: #fff; }
+      .att-round.late { width: 52px; height: 52px; border-color: #ecc56d; color: #a36f00; font-size: 13px; font-weight: 750; }
+      .att-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+      .att-links button { min-height: 40px; padding: 0 14px; border: 1px solid #e3e8f0; border-radius: 10px; background: #fff; color: #4b5870; font-size: 13px; font-weight: 600; }
+      .att-links button:disabled { opacity: .45; }
+      .att-hint { color: #8995a8; font-size: 12px; text-align: center; }
+      .att-done { display: grid; justify-items: center; gap: 10px; padding: 34px 24px; border: 1px solid #e3e8f0; border-radius: 20px; background: #fff; text-align: center; }
+      .att-done strong { color: #1c2940; font-size: 20px; }
+
+      @media (max-width: 720px) {
+        .att-adm { display: none; }
+        .att-btn { min-width: 44px; height: 42px; padding: 0 10px; font-size: 15px; font-weight: 750; }
+        .att-btn::before { display: none; }
+        .att-word { display: none; }
+        .att-letter { display: inline; }
+        .att-saved { width: 100%; margin-left: 0; }
+        .att-card-name { font-size: 21px; }
+      }
+    </style>
+
+    <div class="att-head">
+      <h2>{{ classroom }} — {{ attendance_date|date:"D, j M Y" }}</h2>
+      <div class="att-modes" role="group" aria-label="Marking mode" data-modes hidden>
+        <button type="button" data-mode="quick" aria-pressed="false">Quick mark</button>
+        <button type="button" data-mode="list" aria-pressed="true">List</button>
+      </div>
+    </div>
+
+    <form method="post" data-attendance>
       {% csrf_token %}
       <input type="hidden" name="classroom" value="{{ classroom.pk }}">
       <input type="hidden" name="subject" value="{{ subject.pk|default:'' }}">
       <input type="hidden" name="date" value="{{ attendance_date|date:'Y-m-d' }}">
       {{ formset.management_form }}
       {{ formset.non_form_errors }}
-      <div class="table-responsive">
-        <table class="table table-striped">
-          <thead><tr><th>Student</th><th>Admission number</th><th>Status</th></tr></thead>
-          <tbody>
-            {% for student, row in roster_rows %}
-              <tr>
-                <td>{{ student.student.first_name }} {{ student.student.last_name }}</td>
-                <td>{{ student.student.admission_number }}</td>
-                <td>{{ row.enrollment }}{{ row.status }}{{ row.status.errors }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+
+      <div class="att-status">
+        <span class="pill t-present">Present <b data-count="present">0</b></span>
+        <span class="pill t-absent">Absent <b data-count="absent">0</b></span>
+        <span class="pill t-late">Late <b data-count="late">0</b></span>
+        <span class="att-saved" data-saved aria-live="polite">Everyone starts as Present. Changes save automatically.</span>
       </div>
-      <button class="btn btn-success" type="submit">Save attendance</button>
+
+      <section data-panel="list">
+        <div class="att-tools">
+          <input class="att-search" type="search" placeholder="Search by name or admission number" aria-label="Search students" data-search>
+          <button class="btn btn-outline-success" type="button" data-mark-all="present">Mark all present</button>
+          <button class="btn btn-outline-danger" type="button" data-mark-all="absent">Mark all absent</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table att-table">
+            <thead><tr><th>Student</th><th class="att-adm">Admission number</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for student, row in roster_rows %}
+                <tr data-row data-name="{{ student.student.first_name }} {{ student.student.last_name }}" data-adm="{{ student.student.admission_number }}">
+                  <td>{{ student.student.first_name }} {{ student.student.last_name }}</td>
+                  <td class="att-adm"><span class="att-adm-tag">{{ student.student.admission_number }}</span></td>
+                  <td>
+                    {{ row.enrollment }}
+                    <div class="att-choices" role="radiogroup" aria-label="Status for {{ student.student.first_name }} {{ student.student.last_name }}">
+                      {% for choice in row.status %}
+                        <label>{{ choice.tag }}<span class="att-btn" title="{{ choice.choice_label }}"><span class="att-letter">{{ choice.choice_label|slice:":1" }}</span><span class="att-word">{{ choice.choice_label }}</span></span></label>
+                      {% endfor %}
+                    </div>
+                    {{ row.status.errors }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="att-save">
+          <button class="btn btn-success" type="submit">Save attendance</button>
+        </div>
+      </section>
+
+      <section class="att-quick" data-panel="quick" hidden>
+        <div class="att-progress">
+          <div class="att-progress-text" data-q-progress></div>
+          <div class="att-progress-bar"><span data-q-bar></span></div>
+        </div>
+        <div class="att-stage" data-q-stage>
+          <div class="att-card" data-q-card>
+            <span class="att-stamp absent" data-stamp="absent">ABSENT</span>
+            <span class="att-stamp present" data-stamp="present">PRESENT</span>
+            <div class="att-avatar" data-q-avatar></div>
+            <h3 class="att-card-name" data-q-name></h3>
+            <span class="att-adm-tag" data-q-adm></span>
+            <div class="att-card-state" data-q-state></div>
+          </div>
+          <div class="att-done" data-q-done hidden>
+            <strong>Everyone is marked</strong>
+            <span data-q-summary></span>
+            <button class="btn btn-primary" type="button" data-mode="list">Review in list</button>
+          </div>
+        </div>
+        <div class="att-actions" data-q-actions>
+          <button class="att-round absent" type="button" data-q-mark="absent" aria-label="Mark absent">✕</button>
+          <button class="att-round late" type="button" data-q-mark="late" aria-label="Mark late">Late</button>
+          <button class="att-round present" type="button" data-q-mark="present" aria-label="Mark present">✓</button>
+        </div>
+        <div class="att-links">
+          <button type="button" data-q-prev>‹ Previous student</button>
+          <button type="button" data-q-skip>Skip for now ›</button>
+        </div>
+        <p class="att-hint">Swipe left for absent, right for present. Keyboard: ← absent, → present, L late.</p>
+      </section>
     </form>
+
+    <script>
+      (function () {
+        var form = document.querySelector("[data-attendance]");
+        var rows = Array.prototype.slice.call(form.querySelectorAll("[data-row]"));
+        var savedEl = form.querySelector("[data-saved]");
+        var labels = { present: "Present", absent: "Absent", late: "Late" };
+
+        function statusOf(row) {
+          var checked = row.querySelector("input[type=radio]:checked");
+          return checked ? checked.value : "present";
+        }
+        function setStatus(row, status) {
+          var radio = row.querySelector('input[type=radio][value="' + status + '"]');
+          if (radio && !radio.checked) { radio.checked = true; return true; }
+          return false;
+        }
+        function tally() {
+          ["present", "absent", "late"].forEach(function (status) {
+            form.querySelector('[data-count="' + status + '"]').textContent =
+              rows.filter(function (row) { return statusOf(row) === status; }).length;
+          });
+        }
+
+        // Auto-save: post the whole roster shortly after the last change.
+        var saveTimer = null, saving = false, pending = false, failed = false;
+        function showSaved(text, kind) {
+          savedEl.textContent = text;
+          savedEl.className = "att-saved" + (kind ? " is-" + kind : "");
+        }
+        function scheduleSave() {
+          if (failed) return;
+          pending = true;
+          showSaved("Unsaved changes…", "saving");
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(save, 900);
+        }
+        function save() {
+          if (saving) { saveTimer = setTimeout(save, 400); return; }
+          saving = true; pending = false;
+          showSaved("Saving…", "saving");
+          fetch(window.location.href, {
+            method: "POST",
+            body: new FormData(form),
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            credentials: "same-origin"
+          }).then(function (response) {
+            return response.json().catch(function () { return {}; }).then(function (data) {
+              if (response.ok && data.ok) {
+                if (!pending) showSaved("All changes saved · " + data.saved_at);
+              } else if (response.status === 400 || response.status === 409) {
+                failed = true;
+                showSaved((data.error || "Could not save.") + " Reload the page.", "error");
+              } else {
+                throw new Error("save failed");
+              }
+            });
+          }).catch(function () {
+            pending = true;
+            showSaved("Not saved — check your connection. Retrying…", "error");
+            saveTimer = setTimeout(save, 4000);
+          }).then(function () { saving = false; });
+        }
+        window.addEventListener("beforeunload", function (event) {
+          if (pending || saving) { event.preventDefault(); event.returnValue = ""; }
+        });
+        function changed() { tally(); renderQuick(); scheduleSave(); }
+
+        form.addEventListener("change", function (event) {
+          if (event.target.type === "radio") changed();
+        });
+        form.querySelectorAll("[data-mark-all]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var any = false;
+            rows.forEach(function (row) { if (setStatus(row, button.dataset.markAll)) any = true; });
+            if (any) changed();
+          });
+        });
+        form.querySelector("[data-search]").addEventListener("input", function (event) {
+          var term = event.target.value.trim().toLowerCase();
+          rows.forEach(function (row) {
+            var text = (row.dataset.name + " " + row.dataset.adm).toLowerCase();
+            row.hidden = term !== "" && text.indexOf(term) === -1;
+          });
+        });
+
+        // Quick mark: one student at a time, swipe or tap.
+        var index = 0, done = false;
+        var card = form.querySelector("[data-q-card]");
+        var doneBox = form.querySelector("[data-q-done]");
+        function initials(name) {
+          return name.split(/\s+/).filter(Boolean).slice(0, 2).map(function (part) { return part[0]; }).join("").toUpperCase();
+        }
+        function renderQuick() {
+          var total = rows.length;
+          form.querySelector("[data-q-progress]").textContent = done ? total + " of " + total : (index + 1) + " of " + total;
+          form.querySelector("[data-q-bar]").style.width = (done ? 100 : (index / total) * 100) + "%";
+          card.hidden = done;
+          doneBox.hidden = !done;
+          form.querySelector("[data-q-actions]").style.visibility = done ? "hidden" : "visible";
+          form.querySelector("[data-q-skip]").disabled = done;
+          form.querySelector("[data-q-prev]").disabled = index === 0 && !done;
+          if (done) {
+            var counts = { present: 0, absent: 0, late: 0 };
+            rows.forEach(function (row) { counts[statusOf(row)] += 1; });
+            form.querySelector("[data-q-summary]").textContent =
+              counts.present + " present · " + counts.absent + " absent · " + counts.late + " late";
+            return;
+          }
+          var row = rows[index], status = statusOf(row);
+          form.querySelector("[data-q-avatar]").textContent = initials(row.dataset.name);
+          form.querySelector("[data-q-name]").textContent = row.dataset.name;
+          form.querySelector("[data-q-adm]").textContent = row.dataset.adm;
+          var state = form.querySelector("[data-q-state]");
+          state.textContent = "Currently marked " + labels[status].toLowerCase();
+          state.className = "att-card-state " + status;
+        }
+        function goTo(next) {
+          done = next >= rows.length;
+          index = Math.max(0, Math.min(next, rows.length - 1));
+          renderQuick();
+        }
+        function resetCard() {
+          card.style.transform = "";
+          card.style.opacity = "";
+          card.querySelectorAll("[data-stamp]").forEach(function (stamp) { stamp.style.opacity = 0; });
+        }
+        function mark(status, direction) {
+          if (done || !rows.length) return;
+          if (setStatus(rows[index], status)) changed();
+          card.classList.add("is-animating");
+          card.style.transform = "translateX(" + (direction || 0) * 120 + "%) rotate(" + (direction || 0) * 14 + "deg)";
+          card.style.opacity = direction ? "0" : "0.4";
+          setTimeout(function () {
+            card.classList.remove("is-animating");
+            resetCard();
+            goTo(index + 1);
+          }, 220);
+        }
+        form.querySelectorAll("[data-q-mark]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var status = button.dataset.qMark;
+            mark(status, status === "present" ? 1 : status === "absent" ? -1 : 0);
+          });
+        });
+        form.querySelector("[data-q-skip]").addEventListener("click", function () { goTo(index + 1); });
+        form.querySelector("[data-q-prev]").addEventListener("click", function () { goTo(done ? rows.length - 1 : index - 1); });
+
+        var startX = null, dx = 0;
+        card.addEventListener("pointerdown", function (event) {
+          startX = event.clientX; dx = 0;
+          card.setPointerCapture(event.pointerId);
+          card.classList.add("is-dragging");
+        });
+        card.addEventListener("pointermove", function (event) {
+          if (startX === null) return;
+          dx = event.clientX - startX;
+          card.style.transform = "translateX(" + dx + "px) rotate(" + dx / 18 + "deg)";
+          card.querySelector('[data-stamp="present"]').style.opacity = Math.max(0, Math.min(1, dx / 90));
+          card.querySelector('[data-stamp="absent"]').style.opacity = Math.max(0, Math.min(1, -dx / 90));
+        });
+        function endDrag() {
+          if (startX === null) return;
+          startX = null;
+          card.classList.remove("is-dragging");
+          if (dx > 90) { mark("present", 1); }
+          else if (dx < -90) { mark("absent", -1); }
+          else {
+            card.classList.add("is-animating");
+            resetCard();
+            setTimeout(function () { card.classList.remove("is-animating"); }, 220);
+          }
+        }
+        card.addEventListener("pointerup", endDrag);
+        card.addEventListener("pointercancel", endDrag);
+
+        // Mode switch, remembered per device.
+        var modeButtons = document.querySelectorAll("[data-mode]");
+        var currentMode = "list";
+        function setMode(mode) {
+          currentMode = mode;
+          form.querySelector('[data-panel="list"]').hidden = mode !== "list";
+          form.querySelector('[data-panel="quick"]').hidden = mode !== "quick";
+          document.querySelectorAll("[data-modes] [data-mode]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+          });
+          try { localStorage.setItem("attendance-mode", mode); } catch (e) {}
+          if (mode === "quick") renderQuick();
+        }
+        modeButtons.forEach(function (button) {
+          button.addEventListener("click", function () { setMode(button.dataset.mode); });
+        });
+        document.addEventListener("keydown", function (event) {
+          if (currentMode !== "quick" || event.target.matches("input, textarea, select")) return;
+          if (event.key === "ArrowRight") { event.preventDefault(); mark("present", 1); }
+          else if (event.key === "ArrowLeft") { event.preventDefault(); mark("absent", -1); }
+          else if (event.key === "l" || event.key === "L") { mark("late", 0); }
+        });
+
+        var saved = null;
+        try { saved = localStorage.getItem("attendance-mode"); } catch (e) {}
+        document.querySelector("[data-modes]").hidden = false;
+        setMode(saved === "quick" || saved === "list" ? saved : (window.matchMedia("(max-width: 720px)").matches ? "quick" : "list"));
+        tally();
+      })();
+    </script>
   {% endif %}
-  <p class="mt-3"><a href="{% url 'attendance:monthly-summary' %}">Monthly class summary</a></p>
+  <p class="mt-3 d-flex flex-wrap gap-3"><a href="{% url 'attendance:monthly-summary' %}">Monthly class summary</a><a href="{% url 'attendance:absence-alerts' %}{% if classroom %}?classroom={{ classroom.pk }}&amp;date={{ attendance_date|date:'Y-m-d' }}{% endif %}">Send absent alerts to parents</a></p>
 </main>
 {% endblock %}

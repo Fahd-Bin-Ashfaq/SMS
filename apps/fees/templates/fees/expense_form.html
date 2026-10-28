@@ -1,0 +1,24 @@
+{% extends "fees/base.html" %}
+{% block section_title %}Expenses{% endblock %}
+{% block section_heading %}Expenses{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Add expense</h1>
+  <p class="text-muted mb-4">Bills, rent, stationery and other spending. Salaries are paid from the Staff page.</p>
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }} <span class="text-danger">*</span></label>
+        {{ field }}
+        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save expense</button>
+      <a class="btn btn-outline-secondary" href="{% url 'fees:expenses' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

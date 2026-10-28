@@ -106,6 +106,7 @@ All demo accounts use the same local-only password, `1234`:
 | Office staff | `office` |
 | Teacher | `teacher1` … `teacher6` (`teacher1` is class teacher of Grade 6 A) |
 | Student | `student` |
+| Parent | `parent` (two children, switch between them in the sidebar) |
 
 ### Student portal
 
@@ -116,3 +117,28 @@ Timetables are managed at `/academics/timetable/`: principals can edit every cla
 Do not use demo credentials or fictional sample data in a production deployment. The student account only sees its linked student profile and its own attendance/results.
 
 Run tests with `python manage.py test`. Generate app migrations after model integration with `python manage.py makemigrations` and apply them with `python manage.py migrate`. Review generated migrations before deployment.
+
+### Running a real school
+
+- **School logo:** put `logo.png` (or `.jpg`/`.svg`) in `static/school/`. It shows on the sidebar, login page, fee receipts and ID cards. Set `SCHOOL_NAME`, `SCHOOL_CAMPUS` and `SCHOOL_CONTACT` for the receipt header.
+- **Add students in bulk:** Students → *Import from Excel*. Download the template, fill one student per row and upload `.xlsx` or `.csv`. If any row has a problem nothing is saved and every problem is listed by row number.
+- **Monthly fees:** Fees → *Add monthly fee* bills one month's tuition to every active student, with a fee per class. Students already billed for that month are skipped.
+- **Receipts:** each payment prints on A4 as a parent copy and a school copy, with the amount in words and the remaining balance.
+- **Parent logins:** Students → *Parent logins* creates a login whose username is the guardian's phone number and shares the password on WhatsApp. Brothers and sisters with the same guardian phone share one login.
+- **Homework checking:** teachers use *Check work* on a homework to mark each student done or not done; students and parents see it in the portal.
+- **New academic year:** create the next year under Academic years, then (as principal) *Promote students to next year*: copy the classes, confirm where each class goes, tick students who repeat a grade, and the top class leaves school.
+- **Fee concessions, late fees and other charges:** the principal sets a % concession on a student's fee account (sibling, staff child, need-based); monthly fees apply it automatically. Fees → *Charge classes* adds admission fee, annual fund or exam fee to whole classes; *Late fee* fines students whose monthly fee is past due and unpaid (once per month).
+- **Daily cash report:** Fees → *Today's cash* lists every receipt of a day by payment method and by who received it, with expenses and a signature line for printing. *Print list* on the Fees page prints the defaulters list.
+- **Exams:** the principal uses *Create exam* (one name, many classes; subjects come from teacher assignments), then sets the *Date sheet* (can copy the same dates to all classes). Teachers enter a whole class's marks per subject. *Result cards* show total, percentage, grade, pass/fail (33% per subject) and class position; the class teacher writes remarks; the principal *publishes* results so students and parents can see and print them.
+- **Absent alerts:** Attendance → *Send absent alerts to parents* lists the day's absent and late students with a WhatsApp button for each guardian.
+- **Notice board:** principal and office post notices to the whole school or one class; teachers to their own classes. They appear under Notifications in the student/parent portal.
+- **Staff attendance and salary slips:** Staff → *Staff attendance* each day (present, absent, late, leave). *Pay salary* suggests a deduction of one day's pay (salary ÷ 30) per absence and recovers any advance given from the Staff page, then prints a salary slip.
+
+## Going live
+
+1. **Server:** any host that runs Python/Django (for example PythonAnywhere, a VPS, or a school computer behind a tunnel). Install with `pip install -r requirements.txt`.
+2. **Settings:** copy `.env.example` to `.env` and fill it in. With `DJANGO_DEBUG=false` the site refuses to start without a long random `DJANGO_SECRET_KEY`, forces HTTPS, uses secure cookies and signs people out after 8 hours.
+3. **Database and files:** run `python manage.py migrate` and `python manage.py collectstatic --noinput`. Uploaded photos and study files are served only to signed-in users.
+4. **First accounts:** `python manage.py createsuperuser`, then set its role to Principal in `/admin/`. Never run `seed_demo_data` on the live server and never use the demo passwords.
+5. **Backups (every day):** `python manage.py backup_data` writes `backups/data-*.json.gz` (all records), a copy of the SQLite file and a zip of uploaded files, and deletes backups older than 30 days. Schedule it with Windows Task Scheduler or cron, and **copy the backups folder off the server** (Google Drive, USB disk) — a backup on the same machine is lost with it.
+6. **Restore test (once a month):** on another computer, `python manage.py migrate` then `python manage.py loaddata backups/data-YYYYMMDD-HHMM.json.gz` and check a few students and fees.

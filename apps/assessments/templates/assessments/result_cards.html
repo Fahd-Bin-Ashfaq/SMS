@@ -1,0 +1,57 @@
+{% extends "assessments/base.html" %}
+{% block title %}Result cards · {{ exam.name }}{% endblock %}
+{% block content %}
+{% include "assessments/_result_card_style.html" %}
+<style>@media print { .no-print { display: none !important; } }</style>
+<div class="no-print">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+    <h1 class="h3 mb-0">Result cards · {{ exam.name }} · {{ exam.classroom.name }} {{ exam.classroom.section }}</h1>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'assessments:index' %}">All exams</a>
+      <button class="btn btn-primary" type="button" onclick="window.print()">Print all cards</button>
+    </div>
+  </div>
+  <p class="text-muted">Each card prints on its own page.</p>
+
+  <div class="panel-card mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      {% if exam.results_published %}<span class="pill pill-paid">Published</span> Students and parents can see their result cards.
+      {% else %}<span class="pill pill-muted">Not published</span> Only staff can see these results.{% endif %}
+    </div>
+    {% if is_principal %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="publish">
+        {% if exam.results_published %}<button class="btn btn-outline-danger" type="submit" name="publish" value="0">Hide from students</button>
+        {% else %}<button class="btn btn-success" type="submit" name="publish" value="1" onclick="return confirm('Publish these results to students and parents?')">Publish results</button>{% endif %}
+      </form>
+    {% endif %}
+  </div>
+
+  <form method="post" class="panel-card mb-4">
+    {% csrf_token %}
+    <h2>Class summary{% if can_remark %} &amp; remarks{% endif %}</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Pos.</th><th>Student</th><th class="text-end">Total</th><th class="text-end">%</th><th>Grade</th><th>Result</th><th style="min-width:240px">Remarks</th></tr></thead>
+        <tbody>
+          {% for row in result.rows %}
+            <tr>
+              <td>{{ row.position|default:"—" }}</td>
+              <td>{{ row.student.first_name }} {{ row.student.last_name }}</td>
+              <td class="text-end">{% if row.obtained is not None %}{{ row.obtained|floatformat:"-2" }} / {{ result.maximum_total|floatformat:"-2" }}{% else %}—{% endif %}</td>
+              <td class="text-end">{{ row.percent|default_if_none:"—" }}</td>
+              <td>{{ row.grade|default:"—" }}</td>
+              <td>{% if row.passed %}<span class="pill pill-paid">Pass</span>{% elif row.complete %}<span class="pill pill-due">Fail</span>{% else %}<span class="pill pill-muted">Incomplete</span>{% endif %}</td>
+              <td>{% if can_remark %}<input type="text" name="remark_{{ row.student.pk }}" value="{{ row.remarks }}" maxlength="300" placeholder="e.g. Hard working, needs to improve in English" aria-label="Remarks for {{ row.student.first_name }}">{% else %}{{ row.remarks|default:"—" }}{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="text-muted text-center">No students in this class.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if can_remark and result.rows %}<button class="btn btn-primary" type="submit">Save remarks</button>{% elif not can_remark %}<div class="form-text">Only the class teacher or principal can write remarks.</div>{% endif %}
+  </form>
+</div>
+
+{% for row in result.rows %}{% include "assessments/_result_card.html" %}{% endfor %}
+{% endblock %}

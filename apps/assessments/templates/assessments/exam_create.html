@@ -1,0 +1,39 @@
+{% extends "assessments/base.html" %}
+{% block title %}Create exam{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Create exam</h1>
+  <p class="text-muted mb-4">Creates the exam for every class you tick, with one paper for each subject taught in that class. Set dates and times on the date sheet next.</p>
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.name.id_for_label }}">Exam name <span class="text-danger">*</span></label>
+      {{ form.name }}
+      <div class="form-text">{{ form.name.help_text }}</div>
+      {% for error in form.name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Classes <span class="text-danger">*</span></label>
+      <div class="d-flex flex-wrap gap-3">{% for checkbox in form.classrooms %}<label class="d-flex align-items-center gap-2">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>{% endfor %}</div>
+      <button class="btn btn-sm btn-link px-0" type="button" onclick="document.querySelectorAll('input[name=classrooms]').forEach(function (box) { box.checked = true; })">Select all classes</button>
+      {% for error in form.classrooms.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+        {{ form.date }}
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="{{ form.maximum_marks.id_for_label }}">{{ form.maximum_marks.label }} <span class="text-danger">*</span></label>
+        {{ form.maximum_marks }}
+        <div class="form-text">{{ form.maximum_marks.help_text }}</div>
+        {% for error in form.maximum_marks.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Create exam</button>
+      <a class="btn btn-outline-secondary" href="{% url 'assessments:index' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block extra_style %}
+  .hw-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .hw-back:hover { color: var(--accent-strong); }
+  .hw-detail-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .hw-detail-head h1 { margin: 0; color: #1c2940; font-size: 26px; font-weight: 750; letter-spacing: -.03em; overflow-wrap: anywhere; }
+  .hw-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+  .hw-fact { padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+  .hw-desc { margin-top: 22px; white-space: pre-line; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+  @media (max-width: 860px) { .hw-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+{% endblock %}
+{% block content %}
+<a class="hw-back" href="{% url 'student_portal:homework' %}">‹ All homework</a>
+<article class="card card-pad">
+  <div class="hw-detail-head">
+    <div>
+      <div class="label">{{ item.subject.name }}</div>
+      <h1>{{ item.title }}</h1>
+    </div>
+    {% if item.days_left < 0 %}<span class="chip">Closed</span>
+    {% elif item.days_left == 0 %}<span class="chip due">Due today</span>
+    {% elif item.days_left == 1 %}<span class="chip late">Due tomorrow</span>
+    {% else %}<span class="chip upcoming">{{ item.days_left }} days left</span>{% endif %}
+  </div>
+
+  <div class="hw-facts">
+    <div class="hw-fact"><div class="label">Subject</div><div class="value">{{ item.subject.name }}</div></div>
+    <div class="hw-fact"><div class="label">Teacher</div><div class="value">{% if item.assigned_by %}{{ item.assigned_by.get_full_name|default:item.assigned_by.username }}{% else %}—{% endif %}</div></div>
+    <div class="hw-fact"><div class="label">Assigned</div><div class="value">{{ item.assigned_date|date:"D, j M Y" }}</div></div>
+    <div class="hw-fact"><div class="label">Due</div><div class="value">{{ item.due_date|date:"D, j M Y" }}</div></div>
+  </div>
+
+  {% if check %}
+    <div class="hw-fact" style="margin-top:14px;{% if not check.is_done %}border-color:var(--danger);background:var(--danger-soft){% endif %}">
+      <div class="label">Teacher's check · {{ check.marked_at|date:"j M" }}</div>
+      <div class="value">{% if check.is_done %}✓ Done{% else %}Not done — please complete and show your teacher{% endif %}</div>
+    </div>
+  {% endif %}
+
+  <div class="section-label">Instructions</div>
+  {% if item.description %}
+    <div class="hw-desc">{{ item.description }}</div>
+  {% else %}
+    <p class="muted">Your teacher did not add any instructions. Ask in class if anything is unclear.</p>
+  {% endif %}
+</article>
+{% endblock %}

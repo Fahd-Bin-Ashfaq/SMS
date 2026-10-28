@@ -60,3 +60,29 @@ class Homework(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class HomeworkCompletion(models.Model):
+    """Whether a teacher found a student's homework done when checking it."""
+
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name="completions")
+    student = models.ForeignKey(
+        "academics.Student", on_delete=models.CASCADE, related_name="homework_completions"
+    )
+    is_done = models.BooleanField(default=False)
+    marked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="homework_checks",
+    )
+    marked_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("homework", "student"), name="homework_one_check_per_student")
+        ]
+
+    def __str__(self):
+        return f"{self.student} — {self.homework}: {'done' if self.is_done else 'not done'}"

@@ -1,0 +1,34 @@
+{% extends "fees/base.html" %}
+{% block section_title %}Charges{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Charge whole classes</h1>
+  <p class="text-muted mb-4">Admission fee, annual fund, exam fee or any one-off charge for every active student in the classes you tick. Students who already have a charge with the same description are skipped.</p>
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="mb-3">
+      <label class="form-label">Classes <span class="text-danger">*</span></label>
+      <div class="d-flex flex-wrap gap-3">
+        {% for checkbox in form.classrooms %}<label class="d-flex align-items-center gap-2">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>{% endfor %}
+      </div>
+      <button class="btn btn-sm btn-link px-0" type="button" onclick="document.querySelectorAll('input[name=classrooms]').forEach(function (box) { box.checked = true; })">Select all classes</button>
+      {% for error in form.classrooms.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="row">
+      {% for field in form %}{% if field.name != "classrooms" %}
+        <div class="col-sm-6 mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }} <span class="text-danger">*</span></label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Add charge</button>
+      <a class="btn btn-outline-secondary" href="{% url 'fees:dues' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

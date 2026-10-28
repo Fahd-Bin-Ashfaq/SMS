@@ -1,26 +1,80 @@
 {% extends "fees/base.html" %}
-{% block title %}Outstanding dues{% endblock %}
+{% load humanize_rs %}
+{% block section_title %}Fees{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3">Outstanding dues</h1>
-  <a class="btn btn-primary" href="{% url 'fees:charge-create' %}">Add charge</a>
+<style>@media print { .no-print, .col-actions { display: none !important; } .panel-card { box-shadow: none; border: 0; padding: 0; } }</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">{% if show == "due" %}Fee defaulters{% else %}Student fees{% endif %}{% if selected_class %} · {{ selected_class.name }} {{ selected_class.section }}{% endif %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-primary" href="{% url 'fees:payment-create' %}">Receive fee</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:generate' %}">Add monthly fee</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:bulk-charge' %}">Charge classes</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:late-fees' %}">Late fee</a>
+    <a class="btn btn-outline-secondary" href="{% url 'fees:daily-report' %}">Today's cash</a>
+    <button class="btn btn-outline-secondary" type="button" onclick="window.print()">Print list</button>
+  </div>
 </div>
-<div class="table-responsive">
-  <table class="table table-striped align-middle">
-    <thead><tr><th>Student</th><th>Admission no.</th><th>Charged</th><th>Paid</th><th>Outstanding</th></tr></thead>
-    <tbody>
-      {% for row in rows %}
-        <tr>
-          <td><a href="{% url 'fees:student-account' row.student.pk %}">{{ row.student.first_name }} {{ row.student.last_name }}</a></td>
-          <td>{{ row.student.admission_number }}</td>
-          <td>{{ row.charged|floatformat:2 }}</td>
-          <td>{{ row.paid|floatformat:2 }}</td>
-          <td>{{ row.outstanding|floatformat:2 }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5" class="text-center text-muted">No outstanding fees.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+<div class="panel-card mb-3 no-print">
+  <div class="filter-chips mb-3" aria-label="Class">
+    <a class="{% if not selected_class %}active{% endif %}" href="?show={{ show }}">All classes</a>
+    {% for classroom in classrooms %}
+      <a class="{% if selected_class == classroom %}active{% endif %}" href="?class={{ classroom.pk }}&show={{ show }}">{{ classroom.name }} {{ classroom.section }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-chips" aria-label="Status">
+    <a class="{% if show == 'due' %}active{% endif %}" href="?{% if selected_class %}class={{ selected_class.pk }}&{% endif %}show=due">Due · {{ due_count }}</a>
+    <a class="{% if show == 'paid' %}active{% endif %}" href="?{% if selected_class %}class={{ selected_class.pk }}&{% endif %}show=paid">Paid · {{ paid_count }}</a>
+    <a class="{% if show == 'all' %}active{% endif %}" href="?{% if selected_class %}class={{ selected_class.pk }}&{% endif %}show=all">All · {{ all_count }}</a>
+  </div>
 </div>
+
+{% if show != 'paid' and shown_due %}
+  <p class="mb-2"><strong>Total due{% if selected_class %} in this class{% endif %}: <span class="text-danger money">{{ shown_due|rs }}</span></strong></p>
+{% endif %}
+
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Student</th><th>Class</th><th>Guardian</th><th class="text-end">Due</th><th>Status</th><th class="text-end col-actions">Actions</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><a href="{% url 'fees:student-account' row.student.pk %}"><strong>{{ row.student.first_name }} {{ row.student.last_name }}</strong></a><div class="small text-muted">{{ row.student.admission_number }}</div></td>
+            <td>{{ row.classroom.name }} {{ row.classroom.section }}</td>
+            <td>{{ row.student.guardian_name|default:"—" }}<div class="small text-muted">{{ row.phone|default:"No phone" }}</div></td>
+            <td class="text-end money">{% if row.due %}<strong class="text-danger">{{ row.due|rs }}</strong>{% else %}—{% endif %}</td>
+            <td>
+              {% if row.due %}<span class="pill pill-due">Due</span>{% else %}<span class="pill pill-paid">Paid</span>{% endif %}
+              {% if row.last_reminder %}<div class="small text-muted mt-1">Reminded {{ row.last_reminder|timesince }} ago</div>{% endif %}
+            </td>
+            <td class="text-end col-actions">
+              <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                {% if row.due %}
+                  {% if row.can_remind %}
+                    <form method="post" action="{% url 'fees:remind' row.student.pk %}" target="_blank" data-remind>
+                      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button class="btn btn-sm btn-success" type="submit">WhatsApp reminder</button>
+                    </form>
+                  {% else %}
+                    <span class="small text-muted align-self-center">No valid phone</span>
+                  {% endif %}
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'fees:payment-create' %}?student={{ row.student.pk }}">Receive</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">{% if show == 'due' %}No fees due — everyone has paid.{% else %}No students to show.{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  // The reminder opens WhatsApp in a new tab; refresh this page so "Reminded" updates.
+  document.querySelectorAll("[data-remind]").forEach(function (form) {
+    form.addEventListener("submit", function () { setTimeout(function () { window.location.reload(); }, 1500); });
+  });
+</script>
 {% endblock %}

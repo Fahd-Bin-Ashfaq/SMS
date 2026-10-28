@@ -22,10 +22,18 @@ def index(request):
         exams = Exam.objects.select_related("academic_year", "classroom")
     elif role == "teacher":
         exams = Exam.objects.filter(
-            classroom__teacherassignment__teacher__user=request.user
+            classroom__teacher_assignments__teacher__user=request.user
         ).distinct().select_related("academic_year", "classroom")
     else:
         raise PermissionDenied("You do not have access to assessments.")
+    exams = list(exams.filter(academic_year__is_active=True).prefetch_related("subjects__subject"))
+    taught = set(
+        TeacherAssignment.objects.filter(teacher__user=request.user).values_list("classroom_id", "subject_id")
+    )
+    for exam in exams:
+        exam.markable_subjects = [
+            es for es in exam.subjects.all() if role == "principal" or (exam.classroom_id, es.subject_id) in taught
+        ]
     return render(request, "assessments/index.html", {"exams": exams})
 
 

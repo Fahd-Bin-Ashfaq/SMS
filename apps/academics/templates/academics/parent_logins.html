@@ -1,0 +1,56 @@
+{% extends "portal/base.html" %}
+{% block title %}Parent logins · School Portal{% endblock %}
+{% block page_heading %}Parent logins{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0">Parent logins</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'academics:student_list' %}">Students</a>
+</div>
+<p class="text-muted mb-3">Parents sign in with their phone number and see their child's homework, attendance, results and fees. Brothers and sisters with the same guardian phone share one login.</p>
+
+{% include "accounts/_credentials.html" %}
+
+<div class="panel-card mb-3">
+  <div class="filter-chips">
+    <a class="{% if not selected_class %}active{% endif %}" href="?">All classes</a>
+    {% for classroom in classrooms %}<a class="{% if selected_class == classroom %}active{% endif %}" href="?class={{ classroom.pk }}">{{ classroom.name }} {{ classroom.section }}</a>{% endfor %}
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Student</th><th>Class</th><th>Guardian</th><th>Parent login</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for enrollment in enrollments %}
+          {% with student=enrollment.student %}
+          <tr>
+            <td><strong>{{ student.first_name }} {{ student.last_name }}</strong><div class="small text-muted">{{ student.admission_number }}</div></td>
+            <td>{{ enrollment.classroom.name }} {{ enrollment.classroom.section }}</td>
+            <td>{{ student.guardian_name|default:"—" }}<div class="small text-muted">{{ student.guardian_phone|default:"No phone" }}</div></td>
+            <td>{% if student.guardian_user %}<span class="pill pill-paid">{{ student.guardian_user.username }}</span>{% else %}<span class="pill pill-muted">None</span>{% endif %}</td>
+            <td class="text-end">
+              <form method="post" class="d-inline-flex flex-wrap justify-content-end gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="student" value="{{ student.pk }}">
+                <input type="hidden" name="query" value="{{ query }}">
+                {% if student.guardian_user %}
+                  <button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="reset" onclick="return confirm('Make a new password for {{ student.guardian_user.username }}? The old one will stop working.')">New password</button>
+                  <button class="btn btn-sm btn-outline-danger" type="submit" name="action" value="remove" onclick="return confirm('Remove parent access to {{ student.first_name|escapejs }}?')">Remove</button>
+                {% elif student.guardian_phone %}
+                  <button class="btn btn-sm btn-primary" type="submit" name="action" value="create">Create login</button>
+                {% else %}
+                  <a class="small" href="{% url 'academics:student_update' student.pk %}">Add guardian phone</a>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No students in the active year.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

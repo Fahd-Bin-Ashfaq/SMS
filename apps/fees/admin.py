@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import FeeCharge, FeePayment
+from .models import Expense, FeeCharge, FeePayment, FeeReminder, StaffMember
 
 
 @admin.register(FeeCharge)
@@ -37,3 +37,25 @@ class FeePaymentAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(StaffMember)
+class StaffMemberAdmin(admin.ModelAdmin):
+    list_display = ("name", "designation", "phone", "monthly_salary", "is_active")
+    list_filter = ("is_active", "designation")
+    search_fields = ("name", "designation", "phone")
+
+
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ("date", "category", "description", "amount", "staff", "recorded_by")
+    list_filter = ("category", "date")
+    search_fields = ("description", "staff__name")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(FeeReminder)
+class FeeReminderAdmin(admin.ModelAdmin):
+    list_display = ("student", "amount_due", "phone", "sent_by", "sent_at")
+    search_fields = ("student__admission_number", "student__first_name", "student__last_name")
+    readonly_fields = ("student", "amount_due", "phone", "sent_by", "sent_at")

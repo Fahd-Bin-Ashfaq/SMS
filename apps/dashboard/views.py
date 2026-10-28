@@ -13,6 +13,7 @@ ROLE_PRINCIPAL = "principal"
 ROLE_TEACHER = "teacher"
 ROLE_STUDENT = "student"
 ROLE_OFFICE = "office"
+ROLE_PARENT = "parent"
 ALLOWED_ROLES = {ROLE_PRINCIPAL, ROLE_TEACHER, ROLE_STUDENT, ROLE_OFFICE}
 
 
@@ -326,10 +327,12 @@ def _add_result_summaries(exams):
 @login_required
 def index(request):
     role = getattr(request.user, "role", "")
+    if role in (ROLE_STUDENT, ROLE_PARENT):
+        return redirect("student_portal:home")
     if role not in ALLOWED_ROLES:
         raise PermissionDenied
-    if role == ROLE_STUDENT:
-        return redirect("student_portal:home")
+    if role == ROLE_OFFICE:
+        return redirect("fees:overview")
     context = build_dashboard_context(request.user)
     return render(request, "dashboard/index.html", context)
 

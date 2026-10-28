@@ -1,0 +1,48 @@
+{% extends "fees/base.html" %}
+{% block section_title %}Staff attendance{% endblock %}
+{% block section_heading %}Staff{% endblock %}
+{% block content %}
+<style>
+  .sa-choices { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid #e3e8f0; border-radius: 12px; background: #f1f4f9; }
+  .sa-choices label { position: relative; margin: 0; cursor: pointer; }
+  .sa-choices input { position: absolute; opacity: 0; pointer-events: none; }
+  .sa-choices span { display: block; min-width: 74px; padding: 8px 10px; border-radius: 9px; color: #68758a; font-size: 13px; font-weight: 650; text-align: center; }
+  .sa-choices input:focus-visible + span { outline: 2px solid #626fe7; }
+  .sa-choices input:checked + span { color: #fff; }
+  .sa-choices input[value=present]:checked + span { background: #1d9a5b; }
+  .sa-choices input[value=absent]:checked + span { background: #c8323f; }
+  .sa-choices input[value=late]:checked + span { background: #d99a12; }
+  .sa-choices input[value=leave]:checked + span { background: #626fe7; }
+</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0">Staff attendance · {{ day|date:"D, j F Y" }}</h1>
+  <form method="get"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Choose a day"></form>
+</div>
+<p class="text-muted mb-3">{% if saved %}Saved for this day — change anything and save again.{% else %}Not marked yet. Everyone starts as Present.{% endif %} Absent days are suggested as a salary deduction; leave is not deducted.</p>
+<form method="post" class="panel-card">
+  {% csrf_token %}
+  <input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Staff</th><th>Status</th><th>Note</th><th class="text-end">{{ month|date:"F" }}</th></tr></thead>
+      <tbody>
+        {% for member in members %}
+          <tr>
+            <td><strong>{{ member.name }}</strong><div class="small text-muted">{{ member.designation }}</div></td>
+            <td>
+              <div class="sa-choices" role="radiogroup" aria-label="Status for {{ member.name }}">
+                {% for value, label in statuses %}<label><input type="radio" name="status_{{ member.pk }}" value="{{ value }}"{% if member.today_status == value %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}
+              </div>
+            </td>
+            <td style="min-width:180px"><input type="text" name="note_{{ member.pk }}" value="{{ member.today_note }}" maxlength="160" placeholder="Reason (optional)" aria-label="Note for {{ member.name }}"></td>
+            <td class="text-end small text-nowrap">{% if member.month_absent %}<span class="pill pill-due">{{ member.month_absent }} absent</span>{% endif %}{% if member.month_leave %} <span class="pill pill-muted">{{ member.month_leave }} leave</span>{% endif %}{% if not member.month_absent and not member.month_leave %}—{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-4">No staff added yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if members %}<button class="btn btn-primary" type="submit">Save attendance</button>{% endif %}
+</form>
+{% endblock %}

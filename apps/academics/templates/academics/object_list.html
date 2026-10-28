@@ -5,8 +5,13 @@
 <section>
   <header class="d-flex flex-wrap justify-content-between align-items-center mb-4">
     <h1 class="h2 mb-0">{{ page_title }}</h1>
-    {% if can_manage %}<a class="btn btn-primary" href="{% url create_url_name %}">Add {{ create_label }}</a>{% endif %}
+    <div class="d-flex flex-wrap gap-2">
+      {% if can_manage and page_title == "Students" %}<a class="btn btn-outline-primary" href="{% url 'academics:student_import' %}">Import from Excel</a><a class="btn btn-outline-primary" href="{% url 'academics:parent_logins' %}">Parent logins</a>{% endif %}
+      {% if user.role == "principal" and page_title == "Academic years" %}<a class="btn btn-outline-primary" href="{% url 'academics:promote' %}">Promote students to next year</a>{% endif %}
+      {% if can_manage %}<a class="btn btn-primary" href="{% url create_url_name %}">Add {{ create_label }}</a>{% endif %}
+    </div>
   </header>
+  {% include "accounts/_credentials.html" %}
   <nav class="nav nav-pills mb-4" aria-label="Academic setup">
     <a class="nav-link" href="{% url 'academics:classroom_list' %}">Classes</a>
     <a class="nav-link" href="{% url 'academics:student_list' %}">Students</a>

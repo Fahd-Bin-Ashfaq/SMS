@@ -49,7 +49,7 @@
 </section>
 
 <div class="grid grid-4" style="margin-top:18px">
-  <a class="card summary-card" href="#homework"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div><strong>Homework</strong><div class="label">{% if pending_homework %}{{ pending_homework }} pending{% else %}Nothing pending{% endif %}</div></div></a>
+  <a class="card summary-card" href="{% url 'student_portal:homework' %}"><span class="tile tile-sm tile-soft">{% icon "clipboard" 22 %}</span><div><strong>Homework</strong><div class="label">{% if pending_homework %}{{ pending_homework }} pending{% else %}Nothing pending{% endif %}</div></div></a>
   <a class="card summary-card" href="#results"><span class="tile tile-sm tile-soft">{% icon "award" 22 %}</span><div><strong>Results</strong><div class="label">{% if results %}{{ results.exam.name }}{% if results.percent is not None %} · {{ results.percent }}%{% endif %}{% else %}No results yet{% endif %}</div></div></a>
   <a class="card summary-card" href="#attendance"><span class="tile tile-sm tile-soft">{% icon "calendar-check" 22 %}</span><div><strong>Attendance</strong><div class="label">{% if attendance.percent is not None %}{{ attendance.percent }}% · {{ attendance.total }} days{% else %}No records yet{% endif %}</div></div></a>
   <a class="card summary-card" href="{% url 'student_portal:study_guides' %}"><span class="tile tile-sm tile-soft" style="color:var(--warning);background:var(--warning-soft)">{% icon "guide" 22 %}</span><div><strong>Study Guides</strong><div class="label">{% if guide_count %}{{ guide_count }} guide{{ guide_count|pluralize }}{% else %}No guides yet{% endif %}</div></div></a>
@@ -90,10 +90,10 @@
 <div class="section-label" id="homework">{% icon "clipboard" 18 %}Homework</div>
 <section class="card divided">
   {% for item in homework %}
-    <div class="list-row">
+    <a class="list-row" href="{% url 'student_portal:homework_detail' item.pk %}">
       <div class="grow"><strong>{{ item.title }}</strong><div class="label">{{ item.subject.name }} · assigned {{ item.assigned_date|date:"j M" }}</div>{% if item.description %}<div class="muted" style="margin-top:4px">{{ item.description }}</div>{% endif %}</div>
       {% if item.due_date < now.date %}<span class="chip">Closed</span>{% else %}<span class="chip upcoming">Due {{ item.due_date|date:"D, j M" }}</span>{% endif %}
-    </div>
+    </a>
   {% empty %}
     <div class="empty">No homework has been assigned yet.</div>
   {% endfor %}

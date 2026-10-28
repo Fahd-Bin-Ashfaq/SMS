@@ -1,19 +1,83 @@
 {% extends "fees/base.html" %}
+{% load humanize_rs fee_extras %}
 {% block title %}Receipt {{ payment.receipt_reference }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3">Fee receipt</h1>
-  <button class="btn btn-outline-secondary" type="button" onclick="window.print()">Print</button>
+<style>
+  .rcpt-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .rcpt-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 0; max-width: 1100px; background: #fff; border: 1px solid #e3e8f0; border-radius: 14px; box-shadow: 0 3px 12px #182c4c08; }
+  .rcpt { padding: 26px 28px; color: #172033; }
+  .rcpt + .rcpt { border-left: 2px dashed #c9d1de; }
+  .rcpt-copy { display: inline-block; margin-bottom: 12px; padding: 2px 10px; border: 1px solid #c9d1de; border-radius: 99px; color: #68758a; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .rcpt-head { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 2px solid #152544; }
+  .rcpt-logo { display: grid; width: 56px; height: 56px; flex: none; place-items: center; overflow: hidden; border-radius: 12px; background: #152544; color: #fff; font-size: 24px; font-weight: 800; }
+  .rcpt-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .rcpt-school { font-size: 18px; font-weight: 800; line-height: 1.2; }
+  .rcpt-sub { color: #68758a; font-size: 12px; }
+  .rcpt-title { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 0 12px; }
+  .rcpt-title h2 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .rcpt-no { color: #68758a; font: 600 12px ui-monospace, Consolas, monospace; }
+  .rcpt-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+  .rcpt-grid dt { color: #68758a; font-weight: 600; }
+  .rcpt-grid dd { margin: 0; font-weight: 600; }
+  .rcpt-amount { margin: 16px 0 6px; padding: 12px 14px; border: 1px solid #c9cdf8; border-radius: 10px; background: #f4f5ff; }
+  .rcpt-amount strong { display: block; color: #152544; font-size: 24px; }
+  .rcpt-words { color: #4b5870; font-size: 12px; font-style: italic; }
+  .rcpt-balance { margin-top: 8px; font-size: 13px; }
+  .rcpt-sign { display: flex; justify-content: space-between; gap: 20px; margin-top: 38px; font-size: 12px; color: #68758a; }
+  .rcpt-sign div { flex: 1; padding-top: 6px; border-top: 1px solid #9aa5b4; text-align: center; }
+  .rcpt-foot { margin-top: 14px; color: #9aa5b4; font-size: 11px; text-align: center; }
+  @media (max-width: 860px) { .rcpt-sheet { grid-template-columns: 1fr; } .rcpt + .rcpt { border-left: 0; border-top: 2px dashed #c9d1de; } }
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    .rcpt-actions, .messages { display: none !important; }
+    .rcpt-sheet { max-width: none; border: 0; box-shadow: none; border-radius: 0; }
+    .rcpt-head, .rcpt-logo, .rcpt-amount { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+
+<div class="rcpt-actions">
+  <h1 class="h3 mb-0">Fee receipt</h1>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'fees:student-account' payment.student.pk %}">Student account</a>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print receipt</button>
+  </div>
 </div>
-<section class="card card-body" aria-label="Payment receipt">
-  <div class="d-flex justify-content-between"><strong>Receipt number</strong><span>{{ payment.receipt_reference }}</span></div>
-  <div class="d-flex justify-content-between"><strong>Student</strong><span>{{ payment.student.first_name }} {{ payment.student.last_name }} ({{ payment.student.admission_number }})</span></div>
-  <div class="d-flex justify-content-between"><strong>Academic year</strong><span>{{ payment.academic_year|default:"—" }}</span></div>
-  <div class="d-flex justify-content-between"><strong>Payment date</strong><span>{{ payment.payment_date }}</span></div>
-  <div class="d-flex justify-content-between"><strong>Method</strong><span>{{ payment.get_method_display }}</span></div>
-  <div class="d-flex justify-content-between"><strong>Amount received</strong><span>{{ payment.amount|floatformat:2 }}</span></div>
-  {% if payment.notes %}<div class="d-flex justify-content-between"><strong>Notes</strong><span>{{ payment.notes }}</span></div>{% endif %}
-  <hr>
-  <p class="mb-0">Received by: {{ payment.received_by|default:"School office" }}</p>
+
+<section class="rcpt-sheet" aria-label="Payment receipt">
+  {% for copy in copies %}
+  <article class="rcpt">
+    <span class="rcpt-copy">{{ copy }}</span>
+    <header class="rcpt-head">
+      <div class="rcpt-logo">{% if school_logo_url %}<img src="{{ school_logo_url }}" alt="">{% else %}{{ school_name|slice:":1" }}{% endif %}</div>
+      <div>
+        <div class="rcpt-school">{{ school_name }}</div>
+        <div class="rcpt-sub">{{ school_campus }}{% if school_contact %} · {{ school_contact }}{% endif %}</div>
+      </div>
+    </header>
+    <div class="rcpt-title"><h2>Fee receipt</h2><span class="rcpt-no">{{ payment.receipt_reference }}</span></div>
+    <dl class="rcpt-grid">
+      <dt>Date</dt><dd>{{ payment.payment_date|date:"j F Y" }}</dd>
+      <dt>Student</dt><dd>{{ payment.student.first_name }} {{ payment.student.last_name }}</dd>
+      <dt>Admission no.</dt><dd>{{ payment.student.admission_number }}</dd>
+      {% if classroom %}<dt>Class</dt><dd>{{ classroom.name }} {{ classroom.section }}</dd>{% endif %}
+      {% if payment.student.guardian_name %}<dt>Guardian</dt><dd>{{ payment.student.guardian_name }}</dd>{% endif %}
+      <dt>Paid by</dt><dd>{{ payment.get_method_display }}</dd>
+      {% if payment.notes %}<dt>For</dt><dd>{{ payment.notes }}</dd>{% endif %}
+    </dl>
+    <div class="rcpt-amount">
+      <span class="rcpt-sub">Amount received</span>
+      <strong class="money">{{ payment.amount|rs }}</strong>
+      <span class="rcpt-words">{{ payment.amount|rupees_words }}</span>
+    </div>
+    {% if balance_due is not None %}
+      <div class="rcpt-balance">{% if balance_due %}Remaining fee due as of {% now "j M Y" %}: <strong class="text-danger">{{ balance_due|rs }}</strong>{% else %}<strong class="text-success">No fee due — account is clear.</strong>{% endif %}</div>
+    {% endif %}
+    <div class="rcpt-sign">
+      <div>Received by: {{ payment.received_by.get_full_name|default:payment.received_by|default:"School office" }}</div>
+      <div>Stamp &amp; signature</div>
+    </div>
+    <div class="rcpt-foot">Computer-generated receipt · keep it safe for your record</div>
+  </article>
+  {% endfor %}
 </section>
 {% endblock %}

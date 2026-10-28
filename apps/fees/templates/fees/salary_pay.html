@@ -1,0 +1,46 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs %}
+{% block section_title %}Pay salary{% endblock %}
+{% block section_heading %}Staff{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <a class="small text-muted" href="{% url 'fees:staff' %}">‹ Staff</a>
+  <h1 class="h3 mt-2 mb-1">Pay {{ member.name }} · {{ month|date:"F Y" }}</h1>
+  <p class="text-muted mb-4">{{ member.designation }} · monthly salary {{ member.monthly_salary|rs }}.
+    {% if suggestion.absent_days %}Absent <strong>{{ suggestion.absent_days }} day{{ suggestion.absent_days|pluralize }}</strong> this month (one day = salary ÷ 30).{% endif %}
+    {% if outstanding %}Advance still owed: <strong>{{ outstanding|rs }}</strong>.{% endif %}</p>
+  <form method="post" class="form-card" novalidate data-salary>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row">
+      {% for field in form %}
+        <div class="{% if field.name == 'note' %}col-12{% else %}col-sm-6{% endif %} mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+          {{ field }}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="panel-card mb-2" style="background:#f4f5ff;border-color:#c9cdf8">
+      <div class="kpi-label">Salary to pay</div>
+      <div class="kpi-value money" data-net>—</div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-success" type="submit">Pay and print slip</button>
+      <a class="btn btn-outline-secondary" href="{% url 'fees:staff' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  (function () {
+    var form = document.querySelector("[data-salary]");
+    function value(name) { var el = form.querySelector("[name=" + name + "]"); return parseFloat((el && el.value) || "0") || 0; }
+    function update() {
+      var net = value("basic") + value("allowance") - value("absence_deduction") - value("advance_recovered") - value("other_deduction");
+      form.querySelector("[data-net]").textContent = "Rs " + Math.round(net).toLocaleString("en-US");
+    }
+    form.addEventListener("input", update);
+    update();
+  })();
+</script>
+{% endblock %}

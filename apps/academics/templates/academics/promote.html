@@ -1,0 +1,80 @@
+{% extends "portal/base.html" %}
+{% block title %}Promote students · School Portal{% endblock %}
+{% block page_heading %}New academic year{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Promote students to the next year</h1>
+<p class="text-muted mb-4">Moves every student of <strong>{{ source.name }}</strong> into their new class. Old attendance, results and fees stay in the old year. It is safe to run again — students already moved are skipped.</p>
+
+{% if not target %}
+  <div class="panel-card">
+    <h2>Step 1: Create the new academic year</h2>
+    <p class="text-muted">There is no academic year after {{ source.name }} yet. Create it first (for example 2027-2028), then come back here.</p>
+    <a class="btn btn-primary" href="{% url 'academics:academic_year_create' %}">Create academic year</a>
+  </div>
+{% else %}
+  {% if targets|length > 1 %}
+    <div class="filter-chips mb-3">
+      {% for year in targets %}<a class="{% if year == target %}active{% endif %}" href="?to={{ year.pk }}">{{ year.name }}</a>{% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not target_classes %}
+    <div class="panel-card">
+      <h2>Step 2: Create classes in {{ target.name }}</h2>
+      <p class="text-muted">{{ target.name }} has no classes yet. Copy the same classes (with their class teachers) from {{ source.name }}.</p>
+      <form method="post">{% csrf_token %}<input type="hidden" name="target" value="{{ target.pk }}"><input type="hidden" name="action" value="copy_classes">
+        <button class="btn btn-primary" type="submit">Copy {{ source_classes|length }} classes to {{ target.name }}</button>
+      </form>
+    </div>
+  {% else %}
+    <form method="post" onsubmit="return confirm('Move students into {{ target.name|escapejs }} now?')">
+      {% csrf_token %}
+      <input type="hidden" name="target" value="{{ target.pk }}">
+      <div class="panel-card mb-3">
+        <h2>Where does each class go in {{ target.name }}?</h2>
+        <p class="text-muted small">We guessed the next grade for you. The top class is set to "Leaving school". Open a class to keep failed students in the same grade.</p>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>{{ source.name }}</th><th class="text-end">Students</th><th style="width:45%">Goes to</th></tr></thead>
+            <tbody>
+              {% for classroom in source_classes %}
+                <tr>
+                  <td>
+                    <strong>{{ classroom.name }} {{ classroom.section }}</strong>
+                    {% if classroom.students %}
+                      <details class="mt-1">
+                        <summary class="small text-primary">Students who repeat this grade</summary>
+                        <div class="d-grid gap-1 mt-2">
+                          {% for student in classroom.students %}
+                            <label class="d-flex align-items-center gap-2 small"><input type="checkbox" name="repeat" value="{{ student.pk }}"> {{ student.first_name }} {{ student.last_name }} <span class="text-muted">({{ student.admission_number }})</span></label>
+                          {% endfor %}
+                        </div>
+                      </details>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ classroom.student_count }}</td>
+                  <td>
+                    <select name="class_{{ classroom.pk }}" aria-label="New class for {{ classroom.name }} {{ classroom.section }}">
+                      {% for option in target_classes %}
+                        <option value="{{ option.pk }}"{% if classroom.suggested == option.pk|stringformat:"s" %} selected{% endif %}>{{ option.name }} {{ option.section }}</option>
+                      {% endfor %}
+                      <option value="leave"{% if classroom.suggested == "leave" %} selected{% endif %}>Leaving school (passed out)</option>
+                      <option value="skip"{% if classroom.suggested == "skip" %} selected{% endif %}>Don't move yet</option>
+                    </select>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel-card">
+        <label class="d-flex align-items-center gap-2 mb-3"><input type="checkbox" name="make_active" value="1" checked> Make <strong>{{ target.name }}</strong> the active year after moving students</label>
+        <p class="small text-muted">Students marked "Leaving school" become inactive. Any fee they still owe stays on their account.</p>
+        <button class="btn btn-primary" type="submit">Promote students</button>
+        <a class="btn btn-outline-secondary" href="{% url 'academics:student_list' %}">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+{% endif %}
+{% endblock %}

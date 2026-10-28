@@ -15,35 +15,59 @@
     .portal-brand { display: flex; align-items: center; gap: 11px; padding: 0 9px 32px; color: #fff; font-size: 17px; font-weight: 750; text-decoration: none; }
     .portal-brand:hover { color: #fff; }
     .portal-brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: #6e7cf4; color: #fff; font-size: 19px; }
-    .portal-nav-label { padding: 10px 10px 8px; color: #8392ad; font-size: 10px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    .portal-brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: contain; background: #fff; }
+    .portal-nav-label { padding: 10px 10px 8px; color: #8392ad; font-size: 12px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
     .portal-nav { display: grid; gap: 3px; }
     .portal-nav-link { display: flex; min-height: 48px; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: #bdc9dc; font-size: 14px; font-weight: 600; text-decoration: none; }
     .portal-nav-link:hover, .portal-nav-link.active { background: #26385a; color: #fff; }
     .portal-nav-icon { width: 20px; text-align: center; font-size: 16px; }
-    .portal-sidebar-note { margin-top: auto; padding: 13px; border: 1px solid #344464; border-radius: 12px; color: #aab8ce; font-size: 11px; line-height: 1.6; }
-    .portal-sidebar-note strong { display: block; margin-bottom: 3px; color: #fff; font-size: 12px; }
+    .portal-sidebar-note { margin-top: auto; padding: 13px; border: 1px solid #344464; border-radius: 12px; color: #aab8ce; font-size: 13px; line-height: 1.6; }
+    .portal-sidebar-note strong { display: block; margin-bottom: 3px; color: #fff; font-size: 13px; }
     .portal-workspace { min-height: 100vh; margin-left: 248px; }
     .portal-topbar { display: flex; min-height: 74px; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 34px; border-bottom: 1px solid #e8edf4; background: #fff; }
-    .portal-breadcrumbs { color: #8995a8; font-size: 12px; }
+    .portal-breadcrumbs { color: #8995a8; font-size: 13px; }
     .portal-breadcrumbs strong { color: #283752; font-weight: 650; }
     .portal-top-actions { display: flex; align-items: center; gap: 16px; }
-    .portal-date { padding: 8px 11px; border: 1px solid #edf0f5; border-radius: 9px; color: #68758a; font-size: 11px; }
+    .portal-date { padding: 8px 11px; border: 1px solid #edf0f5; border-radius: 9px; color: #68758a; font-size: 13px; }
     .portal-profile { display: flex; align-items: center; gap: 10px; }
-    .portal-avatar { display: grid; width: 37px; height: 37px; place-items: center; border-radius: 50%; background: #e8eafe; color: #545ed3; font-size: 12px; font-weight: 750; }
-    .portal-profile-name { color: #283752; font-size: 12px; font-weight: 700; }
-    .portal-profile-role { margin-top: 3px; color: #8995a8; font-size: 10px; }
-    .portal-logout { padding: 7px 10px; border: 1px solid #e8edf4; border-radius: 8px; background: #fff; color: #68758a; font-size: 11px; cursor: pointer; }
+    .portal-avatar { display: grid; width: 37px; height: 37px; place-items: center; border-radius: 50%; background: #e8eafe; color: #545ed3; font-size: 13px; font-weight: 750; }
+    .portal-profile-name { color: #283752; font-size: 13px; font-weight: 700; }
+    .portal-profile-role { margin-top: 3px; color: #8995a8; font-size: 12px; }
+    .portal-logout { padding: 7px 10px; border: 1px solid #e8edf4; border-radius: 8px; background: #fff; color: #68758a; font-size: 13px; cursor: pointer; }
     .portal-content { max-width: 1440px; margin: auto; padding: 30px 34px 44px; }
     .portal-content h1 { color: #1c2940; font-weight: 700; letter-spacing: -.035em; }
     .portal-content h2, .portal-content h3, .portal-content h4, .portal-content h5 { color: #25334b; font-weight: 650; }
     .portal-content .container { width: 100%; max-width: none; margin: 0; padding: 0 !important; }
     .portal-content .card, .portal-content .alert, .portal-content form:not(.portal-logout-form) { border-color: #edf0f5; border-radius: 12px; }
     .portal-content .card { box-shadow: 0 3px 12px #182c4c08; }
-    .portal-content .table { --bs-table-bg: transparent; --bs-table-striped-bg: #f7f8fc; margin-bottom: 0; color: #35435a; font-size: 13px; }
-    .portal-content .table thead th { border-bottom-color: #e8edf4; color: #8491a3; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .portal-content .table { --bs-table-bg: transparent; --bs-table-striped-bg: #f7f8fc; margin-bottom: 0; color: #35435a; font-size: 14px; }
+    .portal-content .table thead th { border-bottom-color: #e8edf4; color: #8491a3; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
     .portal-content .table td, .portal-content .table th { padding: 12px 13px; vertical-align: middle; }
     .portal-content input:not([type=checkbox]):not([type=radio]), .portal-content select, .portal-content textarea { max-width: 100%; border: 1px solid #dfe5ee; border-radius: 8px; background-color: #fff; padding: 9px 11px; color: #283752; font: inherit; }
-    .portal-content button, .portal-content .btn { border-radius: 8px; font-size: 12px; font-weight: 650; }
+    .portal-content .form-label { display: block; margin-bottom: 6px; color: #35435a; font-size: 13px; font-weight: 650; }
+    .portal-content form input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=submit]):not([type=button]), .portal-content form select, .portal-content form textarea { display: block; width: 100%; min-height: 42px; }
+    .portal-content form textarea { min-height: 110px; resize: vertical; }
+    .portal-content input:focus, .portal-content select:focus, .portal-content textarea:focus { border-color: #737ef0; outline: none; box-shadow: 0 0 0 3px #737ef01c; }
+    .portal-content .form-text { margin-top: 5px; color: #8995a8; font-size: 12px; }
+    .portal-content .form-narrow { max-width: 760px; }
+    .portal-content .form-card { padding: 24px; border: 1px solid #edf0f5; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #182c4c08; }
+    .portal-content .form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding-top: 18px; border-top: 1px solid #edf0f5; }
+    .portal-content .form-actions .btn { min-height: 42px; padding-right: 18px; padding-left: 18px; font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .kpi { padding: 18px; border: 1px solid #edf0f5; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px #182c4c08; }
+    .kpi-label { color: #68758a; font-size: 13px; font-weight: 600; }
+    .kpi-value { margin-top: 6px; color: #1d2a42; font-size: 26px; font-weight: 750; letter-spacing: -.03em; }
+    .kpi-note { margin-top: 4px; color: #8995a8; font-size: 12px; }
+    .kpi.good .kpi-value { color: #1d7a4c; } .kpi.bad .kpi-value { color: #b42332; }
+    .panel-card { padding: 20px; border: 1px solid #edf0f5; border-radius: 13px; background: #fff; box-shadow: 0 3px 12px #182c4c08; }
+    .panel-card h2 { margin: 0 0 14px; font-size: 17px; }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .pill-paid { background: #e7f6ee; color: #1d7a4c; } .pill-due { background: #fdecee; color: #b42332; } .pill-muted { background: #f1f4f9; color: #68758a; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-chips a { padding: 6px 13px; border: 1px solid #e3e8f0; border-radius: 99px; background: #fff; color: #4b5870; font-size: 13px; font-weight: 600; text-decoration: none; }
+    .filter-chips a.active { border-color: #626fe7; background: #626fe7; color: #fff; }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .portal-content button, .portal-content .btn { border-radius: 8px; font-size: 13px; font-weight: 650; }
     .portal-content .btn-primary { border-color: #626fe7; background: #626fe7; }
     .portal-content .btn-primary:hover { border-color: #515ed5; background: #515ed5; }
     .portal-content .btn-outline-primary { border-color: #626fe7; color: #5867db; }
@@ -58,7 +82,7 @@
       .portal-brand { padding: 0 5px 12px; }
       .portal-nav-label, .portal-sidebar-note { display: none; }
       .portal-nav { display: flex; gap: 4px; overflow-x: auto; }
-      .portal-nav-link { min-height: 40px; flex: 0 0 auto; padding: 9px 11px; font-size: 12px; }
+      .portal-nav-link { min-height: 40px; flex: 0 0 auto; padding: 9px 11px; font-size: 13px; }
       .portal-nav-icon { display: none; }
       .portal-workspace { margin-left: 0; }
       .portal-topbar { min-height: 60px; padding: 10px 15px; }
@@ -73,17 +97,23 @@
 <body>
   <div class="portal-shell">
     <aside class="portal-sidebar">
-      <a class="portal-brand" href="{% url 'dashboard:index' %}"><span class="portal-brand-mark">S</span><span>School Portal</span></a>
+      <a class="portal-brand" href="{% url 'dashboard:index' %}"><span class="portal-brand-mark">{% if school_logo_url %}<img src="{{ school_logo_url }}" alt="">{% else %}S{% endif %}</span><span>School Portal</span></a>
       <div class="portal-nav-label">Workspace</div>
       <nav class="portal-nav" aria-label="Main navigation">
-        <a class="portal-nav-link{% if request.path == '/dashboard/' %} active{% endif %}" href="{% url 'dashboard:index' %}"><span class="portal-nav-icon">⌂</span>Dashboard</a>
-        {% if user.role != "student" %}<a class="portal-nav-link{% if request.path == '/dashboard/reports/' %} active{% endif %}" href="{% url 'dashboard:reports' %}"><span class="portal-nav-icon">▤</span>Reports</a>{% endif %}
-        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/academics/" in request.path and "/timetable/" not in request.path %} active{% endif %}" href="/academics/"><span class="portal-nav-icon">▦</span>Academics</a>{% endif %}
-        {% if user.role != "student" %}<a class="portal-nav-link{% if "/academics/timetable/" in request.path %} active{% endif %}" href="{% url 'academics:timetable_index' %}"><span class="portal-nav-icon">▥</span>Timetable</a>{% endif %}
+        {% if user.role == "office" %}<a class="portal-nav-link{% if request.path == "/fees/overview/" %} active{% endif %}" href="{% url 'fees:overview' %}"><span class="portal-nav-icon">⌂</span>Dashboard</a>{% else %}<a class="portal-nav-link{% if request.path == '/dashboard/' %} active{% endif %}" href="{% url 'dashboard:index' %}"><span class="portal-nav-icon">⌂</span>Dashboard</a>{% endif %}
+        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if request.path == '/dashboard/reports/' %} active{% endif %}" href="{% url 'dashboard:reports' %}"><span class="portal-nav-icon">▤</span>Reports</a>{% endif %}
+        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/academics/" in request.path and "/timetable/" not in request.path and "/teachers/" not in request.path %} active{% endif %}" href="/academics/"><span class="portal-nav-icon">▦</span>Academics</a>{% endif %}
+        {% if user.role == "principal" %}<a class="portal-nav-link{% if "/academics/teachers/" in request.path %} active{% endif %}" href="{% url 'academics:teacher_list' %}"><span class="portal-nav-icon">☺</span>Teachers</a>{% endif %}
+        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/academics/timetable/" in request.path %} active{% endif %}" href="{% url 'academics:timetable_index' %}"><span class="portal-nav-icon">▥</span>Timetable</a>{% endif %}
         {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/attendance/" in request.path %} active{% endif %}" href="/attendance/"><span class="portal-nav-icon">◷</span>Attendance</a>{% endif %}
-        {% if user.role == "principal" %}<a class="portal-nav-link{% if "/assessments/" in request.path %} active{% endif %}" href="/assessments/"><span class="portal-nav-icon">▧</span>Assessments</a>{% endif %}
+        {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/assessments/" in request.path %} active{% endif %}" href="/assessments/"><span class="portal-nav-icon">▧</span>Assessments</a>{% endif %}
         {% if user.role == "principal" or user.role == "teacher" %}<a class="portal-nav-link{% if "/homework/" in request.path %} active{% endif %}" href="/homework/"><span class="portal-nav-icon">▣</span>Homework</a>{% endif %}
-        {% if user.role == "principal" or user.role == "office" %}<a class="portal-nav-link{% if "/fees/" in request.path %} active{% endif %}" href="/fees/"><span class="portal-nav-icon">＄</span>Fees</a>{% endif %}
+        {% if user.role == "office" %}<a class="portal-nav-link{% if "/academics/" in request.path %} active{% endif %}" href="{% url 'academics:student_list' %}"><span class="portal-nav-icon">▦</span>Students</a>{% endif %}
+        {% if user.role == "principal" or user.role == "office" %}<a class="portal-nav-link{% if "/fees/" in request.path and "/fees/overview/" not in request.path and "/fees/staff/" not in request.path and "/fees/expenses/" not in request.path %} active{% endif %}" href="{% url 'fees:dues' %}"><span class="portal-nav-icon">＄</span>Fees</a>
+        <a class="portal-nav-link{% if "/fees/staff/" in request.path %} active{% endif %}" href="{% url 'fees:staff' %}"><span class="portal-nav-icon">☺</span>Staff</a>
+        <a class="portal-nav-link{% if "/fees/expenses/" in request.path %} active{% endif %}" href="{% url 'fees:expenses' %}"><span class="portal-nav-icon">⇄</span>Expenses</a>{% endif %}
+        {% if user.role == "office" %}<a class="portal-nav-link{% if "/attendance/alerts/" in request.path %} active{% endif %}" href="{% url 'attendance:absence-alerts' %}"><span class="portal-nav-icon">◷</span>Absent alerts</a>{% endif %}
+        {% if user.role == "principal" or user.role == "office" or user.role == "teacher" %}<a class="portal-nav-link{% if "/portal/notices/" in request.path %} active{% endif %}" href="{% url 'student_portal:notices' %}"><span class="portal-nav-icon">✉</span>Notices</a>{% endif %}
       </nav>
       <div class="portal-sidebar-note"><strong>School Management</strong>Demo workspace · Sample records only</div>
     </aside>

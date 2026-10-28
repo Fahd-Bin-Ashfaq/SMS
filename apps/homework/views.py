@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F
+from django.db import transaction
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
+from apps.academics.models import Enrollment, Student
 from apps.homework.forms import HomeworkForm
-from apps.homework.models import Homework
+from apps.homework.models import Homework, HomeworkCompletion
 
 
 def _role(user):
@@ -34,7 +36,10 @@ def index(request):
         template = "homework/index.html"
     else:
         raise PermissionDenied("You do not have access to homework.")
-    homework = homework.select_related("classroom", "subject", "assigned_by")
+    homework = homework.select_related("classroom", "subject", "assigned_by").annotate(
+        done_count=Count("completions", filter=Q(completions__is_done=True), distinct=True),
+        checked_count=Count("completions", distinct=True),
+    )
     return render(request, template, {"homework_list": homework})
 
 
@@ -90,3 +95,47 @@ def review(request):
         "classroom", "subject", "assigned_by"
     )
     return render(request, "homework/review.html", {"homework_list": homework})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def check(request, homework_id):
+    homework = get_object_or_404(
+        Homework.objects.select_related("classroom", "subject"), pk=homework_id
+    )
+    if _role(request.user) == "teacher":
+        if not _teacher_homework(request.user).filter(pk=homework.pk).exists():
+            raise PermissionDenied("You do not teach this class and subject.")
+    elif _role(request.user) != "principal":
+        raise PermissionDenied("Only the class's teacher can check homework.")
+
+    students = list(
+        Student.objects.filter(
+            enrollments__classroom=homework.classroom,
+            enrollments__status=Enrollment.Status.ACTIVE,
+            is_active=True,
+        ).order_by("first_name", "last_name")
+    )
+    if request.method == "POST":
+        done_ids = {int(pk) for pk in request.POST.getlist("done") if pk.isdigit()}
+        with transaction.atomic():
+            for student in students:
+                HomeworkCompletion.objects.update_or_create(
+                    homework=homework,
+                    student=student,
+                    defaults={"is_done": student.pk in done_ids, "marked_by": request.user},
+                )
+        done = sum(1 for student in students if student.pk in done_ids)
+        messages.success(request, f'Saved "{homework.title}": {done} of {len(students)} done.')
+        return redirect("homework:index")
+
+    status = dict(
+        HomeworkCompletion.objects.filter(homework=homework).values_list("student_id", "is_done")
+    )
+    for student in students:
+        student.check_status = status.get(student.pk)
+    return render(
+        request,
+        "homework/check.html",
+        {"homework": homework, "students": students, "already_checked": bool(status)},
+    )

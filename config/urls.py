@@ -1,8 +1,15 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from django.urls import include, path
 from django.views.generic import RedirectView
+from django.views.static import serve
+
+
+@login_required
+def protected_media(request, path):
+    """Student photos and study files are private: only signed-in users may open them."""
+    return serve(request, path, document_root=settings.MEDIA_ROOT)
 
 
 urlpatterns = [
@@ -16,7 +23,5 @@ urlpatterns = [
     path("fees/", include("apps.fees.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("portal/", include("apps.student_portal.urls")),
+    path(f"{settings.MEDIA_URL.strip('/')}/<path:path>", protected_media, name="media"),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -27,25 +27,13 @@ class DashboardAccessTests(SimpleTestCase):
         self.assertEqual(response["Location"], "/accounts/login/?next=/dashboard/")
 
     @patch("apps.dashboard.views.build_dashboard_context")
-    def test_office_dashboard_does_not_require_academic_or_exam_data(self, build_context):
-        build_context.return_value = {
-            "role": "office",
-            "today": __import__("datetime").date.today(),
-            "active_students": 0,
-            "active_teachers": 0,
-            "attendance": {"present": 0, "absent": 0, "late": 0, "total": 0},
-            "upcoming_homework": [],
-            "recent_exams": [],
-            "fee_charged": 0,
-            "fee_paid": 0,
-            "fee_balance": 0,
-            "class_count": 0,
-        }
+    def test_office_is_sent_to_the_office_dashboard(self, build_context):
         request = self.factory.get("/dashboard/")
         request.user = get_user_model()(role="office")
         response = views.index.__wrapped__(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "Recent exams")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/fees/overview/")
+        build_context.assert_not_called()
 
 
 class DashboardEmptyDataTests(TestCase):

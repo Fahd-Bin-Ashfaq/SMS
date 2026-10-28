@@ -12,6 +12,22 @@ from apps.assessments.models import (
 from apps.assessments.permissions import user_role
 
 
+class ExamCreateForm(forms.Form):
+    name = forms.CharField(max_length=120, help_text="For example: Mid-term 2026 or Final term.")
+    classrooms = forms.ModelMultipleChoiceField(queryset=None, widget=forms.CheckboxSelectMultiple, label="Classes")
+    date = forms.DateField(
+        label="Starts on", required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    maximum_marks = forms.DecimalField(
+        label="Marks per paper", initial=100, max_digits=7, decimal_places=2, min_value=Decimal("1"),
+        help_text="Can be changed for each subject on the date sheet.",
+    )
+
+    def __init__(self, *args, classrooms, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["classrooms"].queryset = classrooms
+
+
 class MarkEntryForm(forms.Form):
     exam = forms.ModelChoiceField(queryset=Exam.objects.none())
     exam_subject = forms.ModelChoiceField(

@@ -11,31 +11,32 @@
     .auth-header { display: flex; width: 100%; align-items: center; padding: 22px clamp(18px, 5vw, 64px); }
     .auth-brand { display: inline-flex; align-items: center; gap: 11px; color: #1c2940; font-size: 16px; font-weight: 750; text-decoration: none; }
     .auth-brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: #6e7cf4; color: #fff; font-size: 19px; }
+    .auth-brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: contain; background: #fff; }
     .auth-main { position: relative; display: flex; width: 100%; flex: 1; align-items: center; justify-content: center; padding: 24px 18px; }
     .auth-stack { width: min(100%, 440px); margin: 0 auto; }
     .auth-card { width: 100%; padding: clamp(24px, 5vw, 38px); border: 1px solid #edf0f5; border-radius: 16px; background: #fff; box-shadow: 0 12px 35px #182c4c0c; }
     .auth-card h1 { margin: 0; color: #1c2940; font-size: 25px; letter-spacing: -.04em; }
     .auth-card p { color: #78869a; font-size: 13px; line-height: 1.65; }
     .auth-card form > div { margin: 18px 0; }
-    .auth-card label { display: block; margin-bottom: 7px; color: #35435a; font-size: 12px; font-weight: 650; }
+    .auth-card label { display: block; margin-bottom: 7px; color: #35435a; font-size: 13px; font-weight: 650; }
     .auth-card input:not([type=hidden]) { display: block; width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dfe5ee; border-radius: 8px; outline: none; background: #fff; color: #283752; font: inherit; font-size: 13px; transition: border-color .15s, box-shadow .15s; }
     .auth-card input:focus { border-color: #737ef0; box-shadow: 0 0 0 3px #737ef01c; }
     .auth-card button { width: 100%; min-height: 43px; margin-top: 5px; border: 0; border-radius: 8px; background: #626fe7; color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
     .auth-card button:hover { background: #515ed5; }
-    .auth-card a { color: #5867db; font-size: 12px; font-weight: 600; text-decoration: none; }
+    .auth-card a { color: #5867db; font-size: 13px; font-weight: 600; text-decoration: none; }
     .auth-card a:hover { text-decoration: underline; }
-    .auth-footer { padding: 15px 18px 22px; color: #98a3b2; font-size: 11px; text-align: center; }
+    .auth-footer { padding: 15px 18px 22px; color: #98a3b2; font-size: 13px; text-align: center; }
     .auth-messages { position: absolute; top: 14px; left: 50%; width: min(calc(100% - 36px), 584px); margin: 0; padding: 0; list-style: none; transform: translateX(-50%); }
-    .auth-messages li { margin-bottom: 8px; padding: 11px 13px; border: 1px solid #dce5f3; border-radius: 9px; background: #fff; color: #35435a; font-size: 12px; }
+    .auth-messages li { margin-bottom: 8px; padding: 11px 13px; border: 1px solid #dce5f3; border-radius: 9px; background: #fff; color: #35435a; font-size: 13px; }
     .auth-messages li.error { border-color: #f0c8cc; background: #fff6f6; color: #9a2734; }
-    .auth-card .errorlist { margin: 6px 0 0; padding-left: 18px; color: #b42332; font-size: 11px; }
-    .auth-card .helptext, .auth-card ul:not(.errorlist) { color: #78869a; font-size: 11px; line-height: 1.6; }
+    .auth-card .errorlist { margin: 6px 0 0; padding-left: 18px; color: #b42332; font-size: 13px; }
+    .auth-card .helptext, .auth-card ul:not(.errorlist) { color: #78869a; font-size: 13px; line-height: 1.6; }
     @media (max-width: 480px) { .auth-header { padding-top: 15px; padding-bottom: 15px; } .auth-main { padding-top: 62px; } }
   </style>
 </head>
 <body>
   <header class="auth-header">
-    <a class="auth-brand" href="{% url 'login' %}"><span class="auth-brand-mark">S</span><span>School Portal</span></a>
+    <a class="auth-brand" href="{% url 'login' %}"><span class="auth-brand-mark">{% if school_logo_url %}<img src="{{ school_logo_url }}" alt="">{% else %}S{% endif %}</span><span>School Portal</span></a>
   </header>
   <main class="auth-main">
     <div>

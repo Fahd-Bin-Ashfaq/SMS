@@ -1,0 +1,65 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs %}
+{% block section_title %}Monthly fees{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Add monthly fee</h1>
+  <p class="text-muted mb-4">Adds one month's tuition fee to every active student in each class you fill in. Students who already have that month's fee are skipped, so it is safe to run again.</p>
+  {% if errors %}<div class="alert alert-danger">{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="id_month">Month <span class="text-danger">*</span></label>
+        <input id="id_month" type="month" name="month" value="{{ month|date:'Y-m' }}" required>
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="id_due_day">Due on day <span class="text-danger">*</span></label>
+        <input id="id_due_day" type="number" name="due_day" min="1" max="28" value="{{ due_day }}" required>
+        <div class="form-text">For example 10 means the fee is due on the 10th.</div>
+      </div>
+    </div>
+    <label class="form-label">Monthly fee per class (Rs)</label>
+    <div class="form-text mb-2">Leave a class empty to skip it. Last month's fee is filled in for you.</div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Class</th><th class="text-end">Students</th><th style="width:45%">Fee</th><th class="text-end">Total</th></tr></thead>
+        <tbody>
+          {% for classroom in classrooms %}
+            <tr data-fee-row data-students="{{ classroom.student_count }}">
+              <td><strong>{{ classroom.name }} {{ classroom.section }}</strong></td>
+              <td class="text-end">{{ classroom.student_count }}</td>
+              <td><input type="text" inputmode="decimal" name="amount_{{ classroom.pk }}" value="{{ classroom.fee_input }}" placeholder="e.g. 3000" aria-label="Fee for {{ classroom.name }} {{ classroom.section }}"></td>
+              <td class="text-end money" data-row-total>—</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-muted text-center">No classes in the active academic year.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th colspan="3">Total for the month</th><th class="text-end money" data-grand-total>—</th></tr></tfoot>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Add fee to students</button>
+      <a class="btn btn-outline-secondary" href="{% url 'fees:dues' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  (function () {
+    var format = function (n) { return "Rs " + Math.round(n).toLocaleString("en-US"); };
+    function update() {
+      var grand = 0;
+      document.querySelectorAll("[data-fee-row]").forEach(function (row) {
+        var fee = parseFloat(row.querySelector("input").value.replace(/,/g, "")) || 0;
+        var total = fee * parseInt(row.dataset.students, 10);
+        row.querySelector("[data-row-total]").textContent = fee ? format(total) : "—";
+        grand += total;
+      });
+      document.querySelector("[data-grand-total]").textContent = grand ? format(grand) : "—";
+    }
+    document.addEventListener("input", update);
+    update();
+  })();
+</script>
+{% endblock %}

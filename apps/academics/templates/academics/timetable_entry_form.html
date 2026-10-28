@@ -5,7 +5,7 @@
 <section>
   <a class="small" href="{% url 'academics:timetable_detail' classroom.pk %}">← {{ classroom.name }} {{ classroom.section }}</a>
   <h1 class="h2 mb-4 mt-1">Edit period</h1>
-  <form method="post" class="card card-body">
+  <form method="post" class="card card-body form-narrow">
     {% csrf_token %}
     {% for error in form.non_field_errors %}<div class="text-danger mb-2">{{ error }}</div>{% endfor %}
     {% for field in form %}

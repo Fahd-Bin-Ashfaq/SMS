@@ -1,14 +1,21 @@
+from datetime import date
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
-from django.shortcuts import redirect, render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.academics.models import Classroom, Enrollment, Subject, TeacherAssignment
+from apps.fees.services import whatsapp_link, whatsapp_number
 from .forms import AttendanceFilterForm, AttendanceRowFormSet, MonthFilterForm
-from .models import AttendanceRecord
+from .models import AbsenceAlert, AttendanceRecord
 
 
 REVIEW_ROLES = {"principal", "office"}
@@ -86,6 +93,8 @@ def entry(request):
         require_subject=require_subject,
     )
     if not filter_form.is_valid():
+        if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": False, "error": "This class, subject or date is not available."}, status=400)
         return render(request, "attendance/entry.html", {"filter_form": filter_form})
 
     classroom = filter_form.cleaned_data["classroom"]
@@ -95,6 +104,7 @@ def entry(request):
         raise PermissionDenied
 
     if request.method == "POST":
+        autosave = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         enrollments = _active_enrollments(classroom)
         formset = AttendanceRowFormSet(
             request.POST,
@@ -123,14 +133,30 @@ def entry(request):
                             if not created and record.status != form.cleaned_data["status"]:
                                 record.status = form.cleaned_data["status"]
                                 record._changed_by = request.user
-                                record._correction_reason = "Corrected through daily attendance entry."
+                                record._correction_reason = (
+                                    "Changed while marking attendance (auto-save)."
+                                    if autosave
+                                    else "Corrected through daily attendance entry."
+                                )
                                 record.save(update_fields=("status", "updated_at"))
                 except IntegrityError:
+                    if autosave:
+                        return JsonResponse(
+                            {"ok": False, "error": "Attendance changed concurrently. Reload the page."},
+                            status=409,
+                        )
                     messages.error(request, "Attendance changed concurrently. Reload the page before saving again.")
                 else:
+                    if autosave:
+                        return JsonResponse({"ok": True, "saved_at": timezone.localtime().strftime("%H:%M")})
                     messages.success(request, "Attendance saved.")
                     query = f"?classroom={classroom.pk}&subject={subject.pk if subject else ''}&date={attendance_date.isoformat()}"
                     return redirect(f"{reverse('attendance:entry')}{query}")
+        if autosave:
+            errors = list(formset.non_form_errors()) + [
+                str(error) for form in formset.forms for field_errors in form.errors.values() for error in field_errors
+            ]
+            return JsonResponse({"ok": False, "error": " ".join(errors) or "Could not save."}, status=400)
     else:
         enrollments = _active_enrollments(classroom)
         records = AttendanceRecord.objects.filter(
@@ -214,3 +240,87 @@ def monthly_summary(request):
             "totals": totals,
         },
     )
+
+
+ALERT_ROLES = {"principal", "office", "teacher"}
+
+
+def _alert_message(record):
+    student = record.enrollment.student
+    status = "school nahi aaya/aayi" if record.status == AttendanceRecord.Status.ABSENT else "aaj der se school aaya/aayi"
+    return (
+        f"Assalam-o-Alaikum {student.guardian_name or 'Parent'}, aap ka bacha/bachi "
+        f"{student.first_name} {student.last_name} ({record.enrollment.classroom.name} "
+        f"{record.enrollment.classroom.section}) {record.date:%d-%m-%Y} ko {status}. "
+        f"Agar koi wajah hai to school ko bata dein. — {settings.SCHOOL_NAME}"
+    )
+
+
+@login_required
+def absence_alerts(request):
+    """Students marked absent or late on a day, with a WhatsApp button for each guardian."""
+    role = _role(request.user)
+    if role not in ALERT_ROLES:
+        raise PermissionDenied
+    try:
+        day = date.fromisoformat(request.GET.get("date", ""))
+    except ValueError:
+        day = timezone.localdate()
+    classrooms = Classroom.objects.filter(academic_year__is_active=True).order_by("name", "section")
+    if role == "teacher":
+        classrooms = classrooms.filter(teacher_assignments__teacher__user=request.user).distinct()
+    selected = next((c for c in classrooms if str(c.pk) == request.GET.get("classroom")), None)
+    records = (
+        AttendanceRecord.objects.filter(
+            date=day,
+            status__in=(AttendanceRecord.Status.ABSENT, AttendanceRecord.Status.LATE),
+            enrollment__classroom__in=[selected] if selected else classrooms,
+        )
+        .select_related("enrollment__student", "enrollment__classroom", "alert")
+        .order_by("enrollment__classroom__name", "enrollment__classroom__section", "enrollment__student__first_name")
+    )
+    rows = []
+    for record in records:
+        student = record.enrollment.student
+        rows.append(
+            {
+                "record": record,
+                "student": student,
+                "phone": student.guardian_phone or student.phone,
+                "can_send": bool(whatsapp_number(student.guardian_phone or student.phone)),
+                "alert": getattr(record, "alert", None),
+            }
+        )
+    return render(
+        request,
+        "attendance/absence_alerts.html",
+        {
+            "rows": rows,
+            "day": day,
+            "classrooms": classrooms,
+            "selected": selected,
+            "pending": sum(1 for row in rows if row["can_send"] and row["alert"] is None),
+        },
+    )
+
+
+@login_required
+@require_POST
+def send_absence_alert(request, record_id):
+    role = _role(request.user)
+    if role not in ALERT_ROLES:
+        raise PermissionDenied
+    record = get_object_or_404(
+        AttendanceRecord.objects.select_related("enrollment__student", "enrollment__classroom"), pk=record_id
+    )
+    if role == "teacher" and not TeacherAssignment.objects.filter(
+        teacher__user=request.user, classroom=record.enrollment.classroom
+    ).exists():
+        raise PermissionDenied
+    student = record.enrollment.student
+    phone = whatsapp_number(student.guardian_phone or student.phone)
+    if not phone:
+        messages.error(request, f"No valid phone number for {student.first_name}'s guardian.")
+        return redirect(f"{reverse('attendance:absence-alerts')}?date={record.date.isoformat()}")
+    AbsenceAlert.objects.get_or_create(attendance=record, defaults={"phone": phone, "sent_by": request.user})
+    return redirect(whatsapp_link(phone, _alert_message(record)))

@@ -108,3 +108,23 @@ class AttendanceCorrection(models.Model):
 
     def __str__(self):
         return f"{self.attendance}: {self.previous_status} → {self.new_status}"
+
+
+class AbsenceAlert(models.Model):
+    """A WhatsApp message to the guardian about an absence or late arrival."""
+
+    attendance = models.OneToOneField(
+        AttendanceRecord, on_delete=models.CASCADE, related_name="alert"
+    )
+    phone = models.CharField(max_length=30)
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="absence_alerts",
+    )
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Alert for {self.attendance}"

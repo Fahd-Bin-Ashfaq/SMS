@@ -1,0 +1,25 @@
+{% extends "fees/base.html" %}
+{% block section_title %}Late fee{% endblock %}
+{% block content %}
+<div class="form-narrow">
+  <h1 class="h3 mb-1">Add late fee fine</h1>
+  <p class="text-muted mb-4">Fines every student whose monthly fee for the chosen month is past its due date and still unpaid. Each student is fined only once per month, so it is safe to run again.</p>
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      {% for field in form %}
+        <div class="col-sm-6 mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }} <span class="text-danger">*</span></label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Add late fee</button>
+      <a class="btn btn-outline-secondary" href="{% url 'fees:dues' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

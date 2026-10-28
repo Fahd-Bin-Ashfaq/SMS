@@ -1,0 +1,34 @@
+<article class="rc">
+  <header class="rc-head">
+    <div class="rc-logo">{% if school_logo_url %}<img src="{{ school_logo_url }}" alt="">{% else %}{{ school_name|slice:":1" }}{% endif %}</div>
+    <div>
+      <div class="rc-school">{{ school_name }}</div>
+      <div class="rc-sub">{{ school_campus }}{% if school_contact %} · {{ school_contact }}{% endif %}</div>
+    </div>
+    <div class="rc-title">Result card<br><span>{{ exam.name }} · {{ exam.academic_year.name }}</span></div>
+  </header>
+  <dl class="rc-info">
+    <div><dt>Student</dt><dd>{{ row.student.first_name }} {{ row.student.last_name }}</dd></div>
+    <div><dt>Admission no.</dt><dd>{{ row.student.admission_number }}</dd></div>
+    <div><dt>Class</dt><dd>{{ exam.classroom.name }} {{ exam.classroom.section }}</dd></div>
+    {% if row.student.guardian_name %}<div><dt>Guardian</dt><dd>{{ row.student.guardian_name }}</dd></div>{% endif %}
+  </dl>
+  <table class="rc-table">
+    <thead><tr><th>Subject</th><th>Total marks</th><th>Obtained</th><th>Grade</th></tr></thead>
+    <tbody>
+      {% for cell in row.cells %}
+        <tr><td>{{ cell.exam_subject.subject.name }}</td><td>{{ cell.exam_subject.maximum_marks|floatformat:"-2" }}</td><td>{% if cell.marks is not None %}{{ cell.marks|floatformat:"-2" }}{% else %}—{% endif %}</td><td>{{ cell.grade|default:"—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th>{{ result.maximum_total|floatformat:"-2" }}</th><th>{% if row.obtained is not None %}{{ row.obtained|floatformat:"-2" }}{% else %}—{% endif %}</th><th>{{ row.grade|default:"—" }}</th></tr></tfoot>
+  </table>
+  <div class="rc-summary">
+    <div><span>Percentage</span><strong>{% if row.percent is not None %}{{ row.percent }}%{% else %}—{% endif %}</strong></div>
+    <div><span>Grade</span><strong>{{ row.grade|default:"—" }}</strong></div>
+    <div><span>Position</span><strong>{% if row.position %}{{ row.position }} of {{ result.class_size }}{% else %}—{% endif %}</strong></div>
+    <div><span>Result</span><strong class="{% if row.passed %}rc-pass{% elif row.complete %}rc-fail{% endif %}">{% if row.passed %}Pass{% elif row.complete %}Fail{% else %}Incomplete{% endif %}</strong></div>
+  </div>
+  <div class="rc-remarks"><span>Teacher's remarks</span><p>{{ row.remarks|default:"—" }}</p></div>
+  <div class="rc-sign"><div>Class teacher</div><div>Principal</div><div>Parent / guardian</div></div>
+  <div class="rc-scale">Grades: A+ 90%+ · A 80% · B 70% · C 60% · D 50% · E 33% · F below 33%. Pass needs 33% in every subject.</div>
+</article>
