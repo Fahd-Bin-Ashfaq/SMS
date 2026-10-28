@@ -1,5 +1,6 @@
 import re
 from datetime import timedelta
+from decimal import Decimal
 from urllib.parse import quote
 
 from django.conf import settings
@@ -7,7 +8,17 @@ from django.db import transaction
 from django.db.models import Max, Q, Sum
 
 from apps.academics.models import Enrollment
-from .models import MONEY_ZERO, Expense, FeeCharge, FeePayment, FeeReminder, StaffMember
+from .models import (
+    MONEY_ZERO,
+    Expense,
+    FeeCharge,
+    FeeConcession,
+    FeePayment,
+    FeeReminder,
+    SalarySlip,
+    StaffAttendance,
+    StaffMember,
+)
 
 
 def _totals_by_student(queryset):
@@ -112,7 +123,8 @@ def generate_monthly_fees(month, due_day, amounts, user):
 
     ``amounts`` maps classroom pk to the fee for that class. A student who already
     has a monthly charge due in that month is skipped, so running it twice is safe.
-    Returns (created_count, skipped_count, total_amount).
+    A student's concession lowers their fee; a 100% concession bills nothing.
+    Returns (created_count, skipped_count, total_amount, waived_count).
     """
     due_date = month.replace(day=min(due_day, 28))
     next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
@@ -130,13 +142,22 @@ def generate_monthly_fees(month, due_day, amounts, user):
             student_id__in=enrollments.values("student_id"),
         ).values_list("student_id", flat=True)
     )
-    created, skipped, total = 0, 0, MONEY_ZERO
+    concessions = {
+        c.student_id: c for c in FeeConcession.objects.filter(student_id__in=enrollments.values("student_id"))
+    }
+    created, skipped, total, waived = 0, 0, MONEY_ZERO, 0
     with transaction.atomic():
         for enrollment in enrollments:
             if enrollment.student_id in already_billed:
                 skipped += 1
                 continue
             amount = amounts[enrollment.classroom_id]
+            concession = concessions.get(enrollment.student_id)
+            if concession is not None:
+                amount = concession.apply(amount)
+                if amount <= 0:
+                    waived += 1
+                    continue
             FeeCharge.objects.create(
                 student_id=enrollment.student_id,
                 enrollment=enrollment,
@@ -149,7 +170,83 @@ def generate_monthly_fees(month, due_day, amounts, user):
             )
             created += 1
             total += amount
-    return created, skipped, total
+    return created, skipped, total, waived
+
+
+def bulk_charge(classroom_ids, category, description, amount, due_date, user):
+    """Add one charge (admission fee, annual fund, exam fee...) to every active
+    student in the given classes. A student who already has a charge with the
+    same description is skipped. Returns (created_count, skipped_count)."""
+    enrollments = Enrollment.objects.filter(
+        classroom_id__in=classroom_ids,
+        status=Enrollment.Status.ACTIVE,
+        academic_year__is_active=True,
+        student__is_active=True,
+    ).select_related("academic_year")
+    existing = set(
+        FeeCharge.objects.filter(
+            description=description, student_id__in=enrollments.values("student_id")
+        ).values_list("student_id", flat=True)
+    )
+    created = skipped = 0
+    with transaction.atomic():
+        for enrollment in enrollments:
+            if enrollment.student_id in existing:
+                skipped += 1
+                continue
+            FeeCharge.objects.create(
+                student_id=enrollment.student_id,
+                enrollment=enrollment,
+                academic_year=enrollment.academic_year,
+                category=category,
+                description=description,
+                amount=amount,
+                due_date=due_date,
+                created_by=user,
+            )
+            created += 1
+    return created, skipped
+
+
+def late_fee_label(month):
+    return f"Late fee — {month:%B %Y}"
+
+
+def apply_late_fees(month, amount, today, user):
+    """Fine students whose monthly fee for ``month`` is past due and still unpaid.
+
+    Each student is fined at most once per month. Returns (fined_count, already_fined_count).
+    """
+    next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
+    late_charges = FeeCharge.objects.filter(
+        category=FeeCharge.Category.MONTHLY,
+        due_date__gte=month,
+        due_date__lt=min(next_month, today),
+    ).select_related("enrollment__academic_year")
+    owing = {row["student"].pk for row in student_balances(today) if row["due"] > 0}
+    label = late_fee_label(month)
+    already = set(FeeCharge.objects.filter(description=label).values_list("student_id", flat=True))
+    fined = skipped = 0
+    with transaction.atomic():
+        for charge in late_charges:
+            if charge.student_id not in owing:
+                continue
+            if charge.student_id in already:
+                skipped += 1
+                continue
+            FeeCharge.objects.create(
+                student_id=charge.student_id,
+                enrollment=charge.enrollment,
+                academic_year=charge.academic_year,
+                category=FeeCharge.Category.LATE_FEE,
+                description=label,
+                amount=amount,
+                due_date=today,
+                created_by=user,
+            )
+            already.add(charge.student_id)
+            fined += 1
+    return fined, skipped
 
 
 def money_summary(today):
@@ -203,3 +300,34 @@ def reminder_message(student, classroom, amount):
 
 def whatsapp_link(phone, message):
     return f"https://wa.me/{phone}?text={quote(message)}"
+
+
+def advance_outstanding(member):
+    """Advances paid to a staff member that later salaries have not recovered yet."""
+    given = (
+        Expense.objects.filter(staff=member, category=Expense.Category.ADVANCE).aggregate(total=Sum("amount"))["total"]
+        or MONEY_ZERO
+    )
+    recovered = (
+        SalarySlip.objects.filter(expense__staff=member).aggregate(total=Sum("advance_recovered"))["total"]
+        or MONEY_ZERO
+    )
+    return max(given - recovered, MONEY_ZERO)
+
+
+def salary_suggestion(member, month):
+    """Pre-filled salary slip: full salary less one day's pay per absence (a month counts as 30 days)."""
+    next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
+    absent = StaffAttendance.objects.filter(
+        staff=member, date__gte=month, date__lt=next_month, status=StaffAttendance.Status.ABSENT
+    ).count()
+    per_day = member.monthly_salary / Decimal("30")
+    return {
+        "basic": member.monthly_salary,
+        "allowance": MONEY_ZERO,
+        "absent_days": absent,
+        "absence_deduction": (per_day * absent).quantize(Decimal("1")),
+        "advance_recovered": min(advance_outstanding(member), member.monthly_salary),
+        "other_deduction": MONEY_ZERO,
+        "note": "",
+    }

@@ -357,8 +357,11 @@ class Command(BaseCommand):
             academic_year=year,
             classroom=classroom,
             name="Demo Midterm",
-            defaults={"date": max(year.start_date, today - timedelta(days=5))},
+            defaults={"date": max(year.start_date, today - timedelta(days=5)), "results_published": True},
         )
+        if not exam.results_published:
+            exam.results_published = True
+            exam.save(update_fields=["results_published"])
         for user, _teacher, subject in teachers:
             ExamSubject.objects.get_or_create(
                 exam=exam, subject=subject, defaults={"maximum_marks": 100}

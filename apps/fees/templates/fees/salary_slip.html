@@ -1,0 +1,48 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs fee_extras %}
+{% block section_title %}Salary slip{% endblock %}
+{% block section_heading %}Staff{% endblock %}
+{% block content %}
+<style>
+  .slip { max-width: 680px; padding: 26px 30px; border: 1px solid #e3e8f0; border-radius: 14px; background: #fff; }
+  .slip-head { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 2px solid #152544; }
+  .slip-logo { display: grid; width: 52px; height: 52px; place-items: center; overflow: hidden; border-radius: 12px; background: #152544; color: #fff; font-size: 22px; font-weight: 800; }
+  .slip-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .slip table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 14px; }
+  .slip td { padding: 8px 4px; border-bottom: 1px dashed #dfe5ee; }
+  .slip td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .slip .net td { border-top: 2px solid #152544; border-bottom: 0; font-size: 18px; font-weight: 800; }
+  .slip-sign { display: flex; gap: 30px; margin-top: 44px; color: #68758a; font-size: 12px; }
+  .slip-sign div { flex: 1; padding-top: 6px; border-top: 1px solid #9aa5b4; text-align: center; }
+  @media print { .no-print { display: none !important; } .slip { border: 0; } .slip-head, .slip-logo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  <a class="btn btn-outline-secondary" href="{% url 'fees:staff' %}">‹ Staff</a>
+  <button class="btn btn-primary" type="button" onclick="window.print()">Print slip</button>
+</div>
+<article class="slip">
+  <header class="slip-head">
+    <div class="slip-logo">{% if school_logo_url %}<img src="{{ school_logo_url }}" alt="">{% else %}{{ school_name|slice:":1" }}{% endif %}</div>
+    <div><div class="fw-bold fs-5">{{ school_name }}</div><div class="small text-muted">{{ school_campus }}{% if school_contact %} · {{ school_contact }}{% endif %}</div></div>
+    <div class="ms-auto text-end"><div class="fw-bold text-uppercase" style="letter-spacing:.1em">Salary slip</div><div class="small text-muted">{{ expense.salary_month|date:"F Y" }}</div></div>
+  </header>
+  <div class="d-flex flex-wrap gap-4 mt-3">
+    <div><div class="kpi-label">Name</div><strong>{{ expense.staff.name }}</strong></div>
+    <div><div class="kpi-label">Designation</div><strong>{{ expense.staff.designation }}</strong></div>
+    <div><div class="kpi-label">Paid on</div><strong>{{ expense.date|date:"j M Y" }}</strong></div>
+  </div>
+  <table>
+    {% if slip %}
+      <tr><td>Basic salary</td><td>{{ slip.basic|rs }}</td></tr>
+      {% if slip.allowance %}<tr><td>Allowance / bonus</td><td>+ {{ slip.allowance|rs }}</td></tr>{% endif %}
+      {% if slip.absence_deduction %}<tr><td>Absence deduction ({{ slip.absent_days }} day{{ slip.absent_days|pluralize }})</td><td>− {{ slip.absence_deduction|rs }}</td></tr>{% endif %}
+      {% if slip.advance_recovered %}<tr><td>Advance recovered</td><td>− {{ slip.advance_recovered|rs }}</td></tr>{% endif %}
+      {% if slip.other_deduction %}<tr><td>Other deduction</td><td>− {{ slip.other_deduction|rs }}</td></tr>{% endif %}
+    {% endif %}
+    <tr class="net"><td>Net salary paid</td><td>{{ expense.amount|rs }}</td></tr>
+  </table>
+  <p class="small text-muted fst-italic mt-2 mb-0">{{ expense.amount|rupees_words }}</p>
+  {% if slip.note %}<p class="small mt-2 mb-0">Note: {{ slip.note }}</p>{% endif %}
+  <div class="slip-sign"><div>Paid by: {{ expense.recorded_by.get_full_name|default:"School office" }}</div><div>Received by (signature)</div></div>
+</article>
+{% endblock %}

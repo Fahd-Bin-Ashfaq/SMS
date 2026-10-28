@@ -11,7 +11,8 @@ from django.views.decorators.http import require_POST
 
 from apps.academics.models import Enrollment, Student
 from apps.academics.timetable import build_grid, day_periods, is_in_progress, next_period, school_hours
-from apps.assessments.models import Exam, StudentMark
+from apps.assessments.models import Exam, ExamSubject, StudentMark
+from apps.assessments.results import class_results
 from apps.attendance.models import AttendanceRecord
 from apps.homework.models import Homework, HomeworkCompletion
 
@@ -223,7 +224,7 @@ def homework_detail(request, portal, pk):
 
 def _latest_results(portal):
     exam = (
-        Exam.objects.filter(classroom=portal.classroom, marks__student=portal.student)
+        Exam.objects.filter(classroom=portal.classroom, marks__student=portal.student, results_published=True)
         .distinct()
         .order_by("-date")
         .first()
@@ -300,3 +301,33 @@ def notifications(request, portal):
     for item in items:
         item.is_new = item.created_at >= cutoff
     return portal.render("notifications.html", "notifications", {"notifications": items})
+
+
+@student_portal_view
+def exams(request, portal):
+    papers, published = [], []
+    if portal.classroom:
+        papers = list(
+            ExamSubject.objects.filter(exam__classroom=portal.classroom, paper_date__gte=portal.today)
+            .select_related("exam", "subject")
+            .order_by("paper_date", "start_time")
+        )
+        published = list(
+            Exam.objects.filter(classroom=portal.classroom, results_published=True).order_by("-date", "-pk")
+        )
+    return portal.render("exams.html", "exams", {"papers": papers, "published": published})
+
+
+@student_portal_view
+def result_card(request, portal, exam_id):
+    exam = get_object_or_404(
+        Exam.objects.select_related("classroom", "academic_year"),
+        pk=exam_id,
+        classroom=portal.classroom,
+        results_published=True,
+    )
+    result = class_results(exam)
+    row = next((row for row in result["rows"] if row["student"].pk == portal.student.pk), None)
+    if row is None:
+        raise Http404
+    return portal.render("result_card.html", "exams", {"exam": exam, "result": result, "row": row})

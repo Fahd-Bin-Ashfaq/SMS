@@ -1,11 +1,9 @@
-import secrets
-
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,11 +11,18 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from apps.fees.services import whatsapp_link, whatsapp_number
+from apps.accounts.credentials import (
+    new_password,
+    phone_username,
+    pop_credentials,
+    remember_credentials,
+    unique_username,
+)
+from apps.fees.models import StaffMember
 
-from .forms import AcademicYearForm, ClassroomForm, StudentForm, TimetableEntryForm
+from .forms import AcademicYearForm, ClassroomForm, StudentForm, SubjectForm, TeacherForm, TimetableEntryForm
 from .importer import COLUMNS as IMPORT_COLUMNS, REQUIRED as IMPORT_REQUIRED, import_students, template_csv
-from .models import AcademicYear, Classroom, Enrollment, Student, TeacherAssignment, TimetableEntry
+from .models import AcademicYear, Classroom, Enrollment, Student, Subject, Teacher, TeacherAssignment, TimetableEntry
 from .promotion import SKIP, copy_classes, promote, suggest_plan
 from .timetable import build_grid, can_edit_timetable
 
@@ -69,6 +74,7 @@ class AcademicListView(RoleRequiredMixin, ListView):
         context["page_title"] = self.page_title
         context["can_manage"] = getattr(self.request.user, "role", None) in MANAGER_ROLES
         context["create_url_name"] = self.create_url_name
+        context["credentials"] = pop_credentials(self.request)
         context["create_label"] = {
             "Classes": "class",
             "Students": "student",
@@ -143,13 +149,41 @@ class ClassroomDeleteView(ManagerDeleteView):
     list_url_name = "academics:classroom_list"
 
 
-class StudentCreateView(ManagerCreateView):
+class StudentLoginMixin:
+    """After saving a student, create their portal login when asked."""
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        student = self.object
+        if form.cleaned_data.get("create_login") and student.user_id is None:
+            password = new_password()
+            user = get_user_model().objects.create_user(
+                username=unique_username(student.admission_number),
+                password=password,
+                role="student",
+                first_name=student.first_name,
+                last_name=student.last_name,
+            )
+            student.user = user
+            student.save(update_fields=["user"])
+            remember_credentials(
+                request=self.request,
+                user=user,
+                password=password,
+                label=f"student {student.first_name} {student.last_name}",
+                send_to=student.guardian_phone or student.phone,
+            )
+        messages.success(self.request, f"{student.first_name} {student.last_name} saved.")
+        return response
+
+
+class StudentCreateView(StudentLoginMixin, ManagerCreateView):
     model = Student
     form_class = StudentForm
     list_url_name = "academics:student_list"
 
 
-class StudentUpdateView(ManagerUpdateView):
+class StudentUpdateView(StudentLoginMixin, ManagerUpdateView):
     model = Student
     form_class = StudentForm
     list_url_name = "academics:student_list"
@@ -359,32 +393,14 @@ def promote_students(request):
     )
 
 
-PARENT_PASSWORD_CHARS = "abcdefghjkmnpqrstuvwxyz23456789"
-PARENT_CREDENTIALS_SESSION_KEY = "parent_login_credentials"
-
-
-def _parent_username(phone):
-    """0300-1234567 / +92 300 1234567 -> 03001234567 (what parents remember)."""
-    digits = whatsapp_number(phone)
-    return f"0{digits[2:]}" if digits.startswith("92") else digits
-
-
-def _new_parent_password():
-    return "".join(secrets.choice(PARENT_PASSWORD_CHARS) for _ in range(8))
-
-
-def _share_credentials(request, student, user, password):
-    login_url = request.build_absolute_uri(reverse("login"))
-    message = (
-        f"Assalam-o-Alaikum {user.first_name or 'Parent'}, {settings.SCHOOL_NAME} parent portal login for "
-        f"{student.first_name} {student.last_name}:\nUsername: {user.username}\nPassword: {password}\n{login_url}"
+def _share_parent_login(request, student, parent, password):
+    remember_credentials(
+        request,
+        user=parent,
+        password=password,
+        label=f"parent of {student.first_name} {student.last_name}",
+        send_to=parent.username,
     )
-    request.session[PARENT_CREDENTIALS_SESSION_KEY] = {
-        "student": f"{student.first_name} {student.last_name}",
-        "username": user.username,
-        "password": password,
-        "whatsapp": whatsapp_link(whatsapp_number(user.username), message),
-    }
 
 
 @login_required
@@ -396,12 +412,12 @@ def parent_logins(request):
         action = request.POST.get("action")
         if action == "reset" and student.guardian_user_id:
             parent = student.guardian_user
-            password = _new_parent_password()
+            password = new_password()
             parent.set_password(password)
             parent.save(update_fields=["password"])
-            _share_credentials(request, student, parent, password)
+            _share_parent_login(request, student, parent, password)
         elif action == "create":
-            username = _parent_username(student.guardian_phone)
+            username = phone_username(student.guardian_phone)
             if not username:
                 messages.error(request, f"Add a valid guardian phone number for {student.first_name} first.")
             else:
@@ -417,14 +433,14 @@ def parent_logins(request):
                         "(brothers and sisters share one login). The password did not change.",
                     )
                 else:
-                    password = _new_parent_password()
+                    password = new_password()
                     first, _, last = (student.guardian_name or "Parent").partition(" ")
                     parent = User.objects.create_user(
                         username=username, password=password, role="parent", first_name=first, last_name=last
                     )
                     student.guardian_user = parent
                     student.save(update_fields=["guardian_user"])
-                    _share_credentials(request, student, parent, password)
+                    _share_parent_login(request, student, parent, password)
         elif action == "remove" and student.guardian_user_id:
             student.guardian_user = None
             student.save(update_fields=["guardian_user"])
@@ -448,7 +464,138 @@ def parent_logins(request):
             "enrollments": enrollments,
             "classrooms": classrooms,
             "selected_class": selected,
-            "credentials": request.session.pop(PARENT_CREDENTIALS_SESSION_KEY, None),
+            "credentials": pop_credentials(request),
             "query": request.GET.urlencode(),
         },
     )
+
+
+@login_required
+def teacher_list(request):
+    _require_role(request.user, ("principal",))
+    subject_form = SubjectForm(request.POST or None, prefix="subject")
+    if request.method == "POST":
+        if subject_form.is_valid():
+            subject = subject_form.save()
+            messages.success(request, f"Subject {subject.name} added.")
+            return redirect("academics:teacher_list")
+    year = AcademicYear.objects.filter(is_active=True).first()
+    teachers = list(
+        Teacher.objects.select_related("user", "user__staff_profile").order_by(
+            "-user__is_active", "user__first_name", "user__last_name"
+        )
+    )
+    assignments = TeacherAssignment.objects.filter(classroom__academic_year=year).select_related("classroom", "subject")
+    by_teacher = {}
+    for assignment in assignments:
+        by_teacher.setdefault(assignment.teacher_id, []).append(assignment)
+    homerooms = {c.class_teacher_id: c for c in Classroom.objects.filter(academic_year=year, class_teacher__isnull=False)}
+    for teacher in teachers:
+        teacher.current_assignments = by_teacher.get(teacher.pk, [])
+        teacher.homeroom = homerooms.get(teacher.pk)
+        teacher.staff = getattr(teacher.user, "staff_profile", None)
+    return render(
+        request,
+        "academics/teachers.html",
+        {
+            "teachers": teachers,
+            "subjects": Subject.objects.order_by("name"),
+            "subject_form": subject_form,
+            "credentials": pop_credentials(request),
+        },
+    )
+
+
+@login_required
+def teacher_form(request, pk=None):
+    _require_role(request.user, ("principal",))
+    teacher = get_object_or_404(Teacher.objects.select_related("user"), pk=pk) if pk else None
+    staff = StaffMember.objects.filter(user=teacher.user).first() if teacher else None
+    initial = {}
+    if teacher:
+        homeroom = Classroom.objects.filter(class_teacher=teacher, academic_year__is_active=True).first()
+        initial = {
+            "first_name": teacher.user.first_name,
+            "last_name": teacher.user.last_name,
+            "username": teacher.user.username,
+            "phone": staff.phone if staff else "",
+            "monthly_salary": staff.monthly_salary if staff else None,
+            "class_teacher_of": homeroom,
+        }
+    form = TeacherForm(request.POST or None, initial=initial, teacher=teacher)
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data
+        name = f"{data['first_name']} {data['last_name']}".strip()
+        with transaction.atomic():
+            password = None
+            if teacher is None:
+                password = new_password()
+                user = get_user_model().objects.create_user(
+                    username=data["username"] or unique_username(phone_username(data["phone"]), name.replace(" ", ".")),
+                    password=password,
+                    role="teacher",
+                )
+                teacher = Teacher.objects.create(user=user)
+            user = teacher.user
+            user.first_name, user.last_name = data["first_name"], data["last_name"]
+            if data["username"]:
+                user.username = data["username"]
+            user.save()
+
+            StaffMember.objects.update_or_create(
+                user=user,
+                defaults={
+                    "name": name,
+                    "designation": "Teacher",
+                    "phone": data["phone"],
+                    "monthly_salary": data["monthly_salary"] if data["monthly_salary"] is not None else (staff.monthly_salary if staff else 0),
+                    "is_active": user.is_active,
+                },
+            )
+
+            wanted = {tuple(int(part) for part in value.split("-")) for value in form.selected}
+            current = TeacherAssignment.objects.filter(teacher=teacher, classroom__academic_year=form.year)
+            for assignment in current:
+                if (assignment.classroom_id, assignment.subject_id) not in wanted:
+                    assignment.delete()
+            for classroom_id, subject_id in wanted:
+                TeacherAssignment.objects.get_or_create(teacher=teacher, classroom_id=classroom_id, subject_id=subject_id)
+
+            Classroom.objects.filter(class_teacher=teacher, academic_year=form.year).exclude(
+                pk=getattr(data["class_teacher_of"], "pk", None)
+            ).update(class_teacher=None)
+            if data["class_teacher_of"]:
+                Classroom.objects.filter(pk=data["class_teacher_of"].pk).update(class_teacher=teacher)
+
+        if password:
+            remember_credentials(request, user=user, password=password, label=f"teacher {name}", send_to=data["phone"])
+        messages.success(request, f"{name} saved.")
+        return redirect("academics:teacher_list")
+    return render(request, "academics/teacher_form.html", {"form": form, "teacher": teacher})
+
+
+@login_required
+@require_POST
+def teacher_action(request, pk):
+    _require_role(request.user, ("principal",))
+    teacher = get_object_or_404(Teacher.objects.select_related("user"), pk=pk)
+    user = teacher.user
+    name = user.get_full_name() or user.username
+    action = request.POST.get("action")
+    if action == "reset":
+        password = new_password()
+        user.set_password(password)
+        user.save(update_fields=["password"])
+        staff = StaffMember.objects.filter(user=user).first()
+        remember_credentials(
+            request, user=user, password=password, label=f"teacher {name}", send_to=staff.phone if staff else ""
+        )
+    elif action in ("deactivate", "activate"):
+        user.is_active = action == "activate"
+        user.save(update_fields=["is_active"])
+        StaffMember.objects.filter(user=user).update(is_active=user.is_active)
+        messages.success(
+            request,
+            f"{name} can sign in again." if user.is_active else f"{name} can no longer sign in and is marked as left.",
+        )
+    return redirect("academics:teacher_list")

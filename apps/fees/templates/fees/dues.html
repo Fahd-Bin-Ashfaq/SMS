@@ -2,16 +2,20 @@
 {% load humanize_rs %}
 {% block section_title %}Fees{% endblock %}
 {% block content %}
+<style>@media print { .no-print, .col-actions { display: none !important; } .panel-card { box-shadow: none; border: 0; padding: 0; } }</style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Student fees{% if selected_class %} · {{ selected_class.name }} {{ selected_class.section }}{% endif %}</h1>
-  <div class="d-flex flex-wrap gap-2">
+  <h1 class="h3 mb-0">{% if show == "due" %}Fee defaulters{% else %}Student fees{% endif %}{% if selected_class %} · {{ selected_class.name }} {{ selected_class.section }}{% endif %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-primary" href="{% url 'fees:payment-create' %}">Receive fee</a>
     <a class="btn btn-outline-primary" href="{% url 'fees:generate' %}">Add monthly fee</a>
-    <a class="btn btn-outline-secondary" href="{% url 'fees:charge-create' %}">Add other charge</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:bulk-charge' %}">Charge classes</a>
+    <a class="btn btn-outline-primary" href="{% url 'fees:late-fees' %}">Late fee</a>
+    <a class="btn btn-outline-secondary" href="{% url 'fees:daily-report' %}">Today's cash</a>
+    <button class="btn btn-outline-secondary" type="button" onclick="window.print()">Print list</button>
   </div>
 </div>
 
-<div class="panel-card mb-3">
+<div class="panel-card mb-3 no-print">
   <div class="filter-chips mb-3" aria-label="Class">
     <a class="{% if not selected_class %}active{% endif %}" href="?show={{ show }}">All classes</a>
     {% for classroom in classrooms %}
@@ -32,7 +36,7 @@
 <div class="panel-card">
   <div class="table-responsive">
     <table class="table align-middle">
-      <thead><tr><th>Student</th><th>Class</th><th>Guardian</th><th class="text-end">Due</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr><th>Student</th><th>Class</th><th>Guardian</th><th class="text-end">Due</th><th>Status</th><th class="text-end col-actions">Actions</th></tr></thead>
       <tbody>
         {% for row in rows %}
           <tr>
@@ -44,7 +48,7 @@
               {% if row.due %}<span class="pill pill-due">Due</span>{% else %}<span class="pill pill-paid">Paid</span>{% endif %}
               {% if row.last_reminder %}<div class="small text-muted mt-1">Reminded {{ row.last_reminder|timesince }} ago</div>{% endif %}
             </td>
-            <td class="text-end">
+            <td class="text-end col-actions">
               <div class="d-inline-flex flex-wrap justify-content-end gap-2">
                 {% if row.due %}
                   {% if row.can_remind %}

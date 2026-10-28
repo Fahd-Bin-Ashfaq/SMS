@@ -391,6 +391,6 @@
       })();
     </script>
   {% endif %}
-  <p class="mt-3"><a href="{% url 'attendance:monthly-summary' %}">Monthly class summary</a></p>
+  <p class="mt-3 d-flex flex-wrap gap-3"><a href="{% url 'attendance:monthly-summary' %}">Monthly class summary</a><a href="{% url 'attendance:absence-alerts' %}{% if classroom %}?classroom={{ classroom.pk }}&amp;date={{ attendance_date|date:'Y-m-d' }}{% endif %}">Send absent alerts to parents</a></p>
 </main>
 {% endblock %}

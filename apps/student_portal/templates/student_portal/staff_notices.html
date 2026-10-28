@@ -1,0 +1,44 @@
+{% extends "portal/base.html" %}
+{% block title %}Notice board · School Portal{% endblock %}
+{% block page_heading %}Notice board{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Notice board</h1>
+<p class="text-muted mb-4">Notices appear in the student and parent portal under Notifications, with a badge on the menu for a week.</p>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <form method="post" class="form-card" novalidate>
+      {% csrf_token %}
+      <h2 class="h6 mb-3">New notice</h2>
+      {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Send notice</button></div>
+    </form>
+  </div>
+  <div class="col-lg-7">
+    <section class="panel-card">
+      <h2>Sent notices</h2>
+      {% for notice in notices %}
+        <article class="py-3{% if not forloop.first %} border-top{% endif %}">
+          <div class="d-flex justify-content-between gap-2">
+            <strong>{{ notice.title }}</strong>
+            <span class="pill {% if notice.classroom %}pill-muted{% else %}pill-paid{% endif %}">{% if notice.classroom %}{{ notice.classroom.name }} {{ notice.classroom.section }}{% else %}Whole school{% endif %}</span>
+          </div>
+          <div class="text-muted small mb-1">{{ notice.created_at|date:"j M Y, g:i a" }}{% if notice.created_by %} · {{ notice.created_by.get_full_name|default:notice.created_by.username }}{% endif %}</div>
+          <div style="white-space:pre-line">{{ notice.message }}</div>
+          {% if user.role == "principal" or notice.created_by_id == user.pk %}
+            <form method="post" action="{% url 'student_portal:notice_delete' notice.pk %}" class="mt-1" onsubmit="return confirm('Remove this notice?')">{% csrf_token %}<button class="btn btn-sm btn-link text-danger px-0" type="submit">Remove</button></form>
+          {% endif %}
+        </article>
+      {% empty %}
+        <p class="text-muted mb-0">No notices yet.</p>
+      {% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}

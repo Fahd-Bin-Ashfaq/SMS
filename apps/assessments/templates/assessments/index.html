@@ -1,26 +1,38 @@
 {% extends "assessments/base.html" %}
 {% block title %}Exams{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Exams and results</h1>
-{% if user.role == "teacher" %}
-  <p><a class="btn btn-primary" href="{% url 'assessments:mark-entry' %}">Enter marks</a></p>
-{% else %}
-  <p><a class="btn btn-outline-primary" href="{% url 'assessments:review' %}">Review all marks</a></p>
-{% endif %}
-<div class="table-responsive">
-  <table class="table table-striped align-middle">
-    <thead><tr><th>Exam</th><th>Class</th><th>Academic year</th><th>Date</th><th></th></tr></thead>
-    <tbody>
-    {% for exam in exams %}
-      <tr>
-        <td>{{ exam.name }}</td><td>{{ exam.classroom }}</td><td>{{ exam.academic_year }}</td>
-        <td>{{ exam.date|default:"—" }}</td>
-        <td><a href="{% url 'assessments:result-sheet' exam.id %}">Result sheet</a></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="5" class="text-muted">No exams are available.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Exams and results</h1>
+  <div class="d-flex flex-wrap gap-2">
+    {% if user.role == "principal" %}<a class="btn btn-primary" href="{% url 'assessments:exam-create' %}">Create exam</a>{% endif %}
+    {% if user.role != "teacher" %}<a class="btn btn-outline-secondary" href="{% url 'assessments:review' %}">All marks</a>{% endif %}
+  </div>
+</div>
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Exam</th><th>Class</th><th>Enter marks</th><th>Results</th><th class="text-end"></th></tr></thead>
+      <tbody>
+      {% for exam in exams %}
+        <tr>
+          <td><strong>{{ exam.name }}</strong><div class="small text-muted">{{ exam.date|date:"j M Y"|default:"Date not set" }}</div></td>
+          <td>{{ exam.classroom.name }} {{ exam.classroom.section }}</td>
+          <td>
+            <div class="d-flex flex-wrap gap-1">
+              {% for exam_subject in exam.markable_subjects %}<a class="btn btn-sm btn-outline-primary" href="{% url 'assessments:class-marks' exam.pk exam_subject.subject_id %}">{{ exam_subject.subject.name }}</a>{% empty %}<span class="small text-muted">—</span>{% endfor %}
+            </div>
+          </td>
+          <td>{% if exam.results_published %}<span class="pill pill-paid">Published</span>{% else %}<span class="pill pill-muted">Not published</span>{% endif %}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'assessments:date-sheet' exam.pk %}">Date sheet</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'assessments:result-cards' exam.pk %}">Result cards</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted text-center py-4">No exams in the active year.{% if user.role == "principal" %} Use "Create exam" to add one.{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

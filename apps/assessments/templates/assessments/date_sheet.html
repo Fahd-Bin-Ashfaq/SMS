@@ -1,0 +1,49 @@
+{% extends "assessments/base.html" %}
+{% block title %}Date sheet · {{ exam.name }}{% endblock %}
+{% block content %}
+<style>@media print { .no-print { display: none !important; } .panel-card { box-shadow: none; border: 0; } input { border: 0 !important; padding: 0 !important; } }</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+  <h1 class="h3 mb-0">Date sheet · {{ exam.name }}</h1>
+  <div class="d-flex gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'assessments:index' %}">All exams</a>
+    <button class="btn btn-outline-primary" type="button" onclick="window.print()">Print</button>
+  </div>
+</div>
+<p class="text-muted">{{ school_name }} · {{ exam.classroom.name }} {{ exam.classroom.section }} · {{ exam.academic_year.name }}</p>
+{% if errors %}<div class="alert alert-danger">{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+
+<form method="post" class="panel-card" novalidate>
+  {% csrf_token %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Subject</th><th>Date</th><th>Starts</th><th>Ends</th><th>Out of</th></tr></thead>
+      <tbody>
+        {% for es in exam_subjects %}
+          <tr>
+            <td><strong>{{ es.subject.name }}</strong></td>
+            {% if can_edit %}
+              <td><input type="date" name="s{{ es.pk }}_date" value="{{ es.paper_date|date:'Y-m-d' }}" aria-label="{{ es.subject.name }} date"></td>
+              <td><input type="time" name="s{{ es.pk }}_start" value="{{ es.start_time|time:'H:i' }}" aria-label="{{ es.subject.name }} start"></td>
+              <td><input type="time" name="s{{ es.pk }}_end" value="{{ es.end_time|time:'H:i' }}" aria-label="{{ es.subject.name }} end"></td>
+              <td style="max-width:110px"><input type="number" min="1" step="0.5" name="s{{ es.pk }}_max" value="{{ es.maximum_marks|floatformat:'-2' }}" aria-label="{{ es.subject.name }} maximum marks"></td>
+            {% else %}
+              <td>{{ es.paper_date|date:"D, j M Y"|default:"—" }}</td>
+              <td>{{ es.start_time|time:"g:i a"|default:"—" }}</td>
+              <td>{{ es.end_time|time:"g:i a"|default:"—" }}</td>
+              <td>{{ es.maximum_marks|floatformat:"-2" }}</td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-muted">No subjects in this exam. Assign teachers to this class first.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if can_edit and exam_subjects %}
+    <div class="no-print">
+      <label class="d-flex align-items-center gap-2 mb-3"><input type="checkbox" name="copy" value="1"> Use the same dates and times for every class's "{{ exam.name }}"</label>
+      <button class="btn btn-primary" type="submit">Save date sheet</button>
+    </div>
+  {% endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "portal/base.html" %}
+{% block title %}{% if teacher %}Edit teacher{% else %}Add teacher{% endif %} · School Portal{% endblock %}
+{% block page_heading %}Teachers{% endblock %}
+{% block content %}
+<style>
+  .assign-grid th, .assign-grid td { text-align: center; white-space: nowrap; }
+  .assign-grid th:first-child, .assign-grid td:first-child { text-align: left; }
+  .assign-grid input { width: 20px; height: 20px; }
+</style>
+<div class="form-narrow" style="max-width:960px">
+  <a class="small text-muted" href="{% url 'academics:teacher_list' %}">‹ All teachers</a>
+  <h1 class="h3 mt-2 mb-1">{% if teacher %}Edit {{ teacher.user.get_full_name|default:teacher.user.username }}{% else %}Add teacher{% endif %}</h1>
+  <p class="text-muted mb-4">{% if teacher %}Changes apply straight away.{% else %}Creates the teacher's login, adds them to the staff salary list and gives them their classes. The password is shown once on the next page.{% endif %}</p>
+
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row">
+      {% for field in form %}
+        <div class="col-sm-6 mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <label class="form-label mt-2">Classes and subjects this teacher teaches</label>
+    {% if form.subjects and form.classrooms %}
+      <div class="form-text mb-2">Tick each class and subject. The teacher can then take attendance, give homework and enter marks for them.</div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle assign-grid">
+          <thead><tr><th>Class</th>{% for subject in form.subjects %}<th>{{ subject.name }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for classroom, cells in form.assignment_rows %}
+              <tr>
+                <td><strong>{{ classroom.name }} {{ classroom.section }}</strong></td>
+                {% for value, subject, checked in cells %}
+                  <td><input type="checkbox" name="assign" value="{{ value }}"{% if checked %} checked{% endif %} aria-label="{{ classroom.name }} {{ classroom.section }} {{ subject.name }}"></td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted small">Add classes in the active year and subjects first (subjects are on the Teachers page).</p>
+    {% endif %}
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">{% if teacher %}Save changes{% else %}Create teacher{% endif %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'academics:teacher_list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

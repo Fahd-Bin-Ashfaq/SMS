@@ -11,6 +11,7 @@
       {% if can_manage %}<a class="btn btn-primary" href="{% url create_url_name %}">Add {{ create_label }}</a>{% endif %}
     </div>
   </header>
+  {% include "accounts/_credentials.html" %}
   <nav class="nav nav-pills mb-4" aria-label="Academic setup">
     <a class="nav-link" href="{% url 'academics:classroom_list' %}">Classes</a>
     <a class="nav-link" href="{% url 'academics:student_list' %}">Students</a>

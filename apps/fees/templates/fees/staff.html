@@ -5,8 +5,13 @@
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
   <h1 class="h3 mb-0">Staff &amp; salaries</h1>
-  <a class="btn btn-primary" href="{% url 'fees:staff-create' %}">Add staff member</a>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'fees:staff-attendance' %}">Staff attendance</a>
+    <a class="btn btn-primary" href="{% url 'fees:staff-create' %}">Add staff member</a>
+  </div>
 </div>
+
+{% include "accounts/_credentials.html" %}
 
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-label">Staff</div><div class="kpi-value">{{ money.staff_count }}</div><div class="kpi-note">currently working</div></div>
@@ -18,7 +23,7 @@
 <div class="panel-card">
   <div class="table-responsive">
     <table class="table align-middle">
-      <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th class="text-end">Monthly salary</th><th>{{ month|date:"F" }}</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr><th>Name</th><th>Designation</th><th>Phone</th><th class="text-end">Monthly salary</th><th>{{ month|date:"F" }}</th><th>Login</th><th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for member in staff %}
           <tr{% if not member.is_active %} class="text-muted"{% endif %}>
@@ -27,23 +32,37 @@
             <td>{{ member.phone|default:"—" }}</td>
             <td class="text-end money">{{ member.monthly_salary|rs }}</td>
             <td>
-              {% if member.paid_this_month %}<span class="pill pill-paid">Paid</span>
+              {% if member.paid_this_month %}<a class="pill pill-paid text-decoration-none" href="{% url 'fees:salary-slip' member.slip_id %}">Paid · slip</a>
               {% elif member.is_active %}<span class="pill pill-due">Unpaid</span>
               {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if member.user %}<span class="font-monospace small">{{ member.user.username }}</span>{% if not member.user.is_active %} <span class="pill pill-muted">Off</span>{% endif %}
+              {% elif user.role == "principal" and member.is_active %}
+                <form method="post" action="{% url 'fees:staff-login' member.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" type="submit" onclick="return confirm('Give {{ member.name|escapejs }} an office login? They will see fees, staff and expenses.')">Create login</button></form>
+              {% else %}<span class="text-muted small">—</span>{% endif %}
             </td>
             <td class="text-end">
               <div class="d-inline-flex flex-wrap justify-content-end gap-2">
                 {% if member.is_active and not member.paid_this_month %}
-                  <form method="post" action="{% url 'fees:staff-pay' member.pk %}" onsubmit="return confirm('Pay {{ member.monthly_salary|rs }} to {{ member.name|escapejs }} for {{ month|date:"F Y" }}?')">
-                    {% csrf_token %}<button class="btn btn-sm btn-success" type="submit">Pay salary</button>
-                  </form>
+                  <a class="btn btn-sm btn-success" href="{% url 'fees:staff-pay' member.pk %}">Pay salary</a>
+                {% endif %}
+                {% if member.is_active %}
+                  <details class="text-start">
+                    <summary class="btn btn-sm btn-outline-secondary">Advance{% if member.advance_owed %} · owes {{ member.advance_owed|rs }}{% endif %}</summary>
+                    <form method="post" action="{% url 'fees:staff-advance' member.pk %}" class="d-flex gap-1 mt-1" style="min-width:220px">
+                      {% csrf_token %}
+                      <input type="number" name="amount" min="1" placeholder="Amount" required aria-label="Advance amount for {{ member.name }}">
+                      <button class="btn btn-sm btn-primary" type="submit">Give</button>
+                    </form>
+                  </details>
                 {% endif %}
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'fees:staff-edit' member.pk %}">Edit</a>
               </div>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="text-center text-muted py-4">No staff added yet.</td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4">No staff added yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

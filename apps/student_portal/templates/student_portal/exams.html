@@ -1,0 +1,41 @@
+{% extends "student_portal/base.html" %}
+{% load portal_icons %}
+{% block title %}Exams{% endblock %}
+{% block content %}
+<header class="page-head">
+  <span class="tile">{% icon "award" 30 %}</span>
+  <div><h1>Exams</h1><p>Date sheet and result cards</p></div>
+</header>
+
+<div class="section-label">{% icon "calendar" 18 %}Upcoming papers</div>
+<section class="card divided">
+  {% for paper in papers %}
+    <div class="list-row">
+      <span class="tile tile-sm tile-soft">{% icon "calendar" 22 %}</span>
+      <div class="grow">
+        <strong>{{ paper.subject.name }}</strong>
+        <div class="label">{{ paper.exam.name }} · out of {{ paper.maximum_marks|floatformat:"-2" }}</div>
+      </div>
+      <div class="stack" style="text-align:right">
+        <span class="chip upcoming">{{ paper.paper_date|date:"D, j M" }}</span>
+        {% if paper.start_time %}<span class="label">{{ paper.start_time|time:"g:i a" }}{% if paper.end_time %} – {{ paper.end_time|time:"g:i a" }}{% endif %}</span>{% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty">No exams are scheduled right now.</div>
+  {% endfor %}
+</section>
+
+<div class="section-label">{% icon "award" 18 %}Result cards</div>
+<section class="card divided">
+  {% for exam in published %}
+    <a class="list-row" href="{% url 'student_portal:result_card' exam.pk %}">
+      <span class="tile tile-sm tile-soft">{% icon "award" 22 %}</span>
+      <div class="grow"><strong>{{ exam.name }}</strong><div class="label">{{ exam.date|date:"F Y"|default:"" }}</div></div>
+      <span class="chip">View card</span>
+    </a>
+  {% empty %}
+    <div class="empty">No results have been published yet.</div>
+  {% endfor %}
+</section>
+{% endblock %}

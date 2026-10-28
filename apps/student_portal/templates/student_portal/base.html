@@ -168,6 +168,7 @@
       <a class="portal-nav-link{% if section == 'home' %} active{% endif %}" href="{% url 'student_portal:home' %}"><span class="portal-nav-icon">{% icon "home" 18 %}</span>Home</a>
       <a class="portal-nav-link{% if section == 'classroom' %} active{% endif %}" href="{% url 'student_portal:classroom' %}"><span class="portal-nav-icon">{% icon "classroom" 18 %}</span>Classroom</a>
       <a class="portal-nav-link{% if section == 'homework' %} active{% endif %}" href="{% url 'student_portal:homework' %}"><span class="portal-nav-icon">{% icon "clipboard" 18 %}</span>Homework{% if due_homework %}<span class="badge-count">{{ due_homework }}</span>{% endif %}</a>
+      <a class="portal-nav-link{% if section == 'exams' %} active{% endif %}" href="{% url 'student_portal:exams' %}"><span class="portal-nav-icon">{% icon "award" 18 %}</span>Exams</a>
       <a class="portal-nav-link{% if section == 'guides' %} active{% endif %}" href="{% url 'student_portal:study_guides' %}"><span class="portal-nav-icon">{% icon "guide" 18 %}</span>Study Guides</a>
       <a class="portal-nav-link{% if section == 'balance' %} active{% endif %}" href="{% url 'student_portal:balance' %}"><span class="portal-nav-icon">{% icon "wallet" 18 %}</span>Balance</a>
       <a class="portal-nav-link{% if section == 'id_card' %} active{% endif %}" href="{% url 'student_portal:id_card' %}"><span class="portal-nav-icon">{% icon "id-card" 18 %}</span>ID Card</a>
@@ -192,7 +193,7 @@
 
   <div class="portal-workspace">
     <header class="portal-topbar">
-      <div class="portal-breadcrumbs">School Portal <span aria-hidden="true">/</span> <strong>{% if section == 'classroom' %}Classroom{% elif section == 'homework' %}Homework{% elif section == 'guides' %}Study Guides{% elif section == 'balance' %}Balance{% elif section == 'id_card' %}ID Card{% elif section == 'profile' %}Profile{% elif section == 'notifications' %}Notifications{% else %}Home{% endif %}</strong></div>
+      <div class="portal-breadcrumbs">School Portal <span aria-hidden="true">/</span> <strong>{% if section == 'classroom' %}Classroom{% elif section == 'homework' %}Homework{% elif section == 'exams' %}Exams{% elif section == 'guides' %}Study Guides{% elif section == 'balance' %}Balance{% elif section == 'id_card' %}ID Card{% elif section == 'profile' %}Profile{% elif section == 'notifications' %}Notifications{% else %}Home{% endif %}</strong></div>
       <div class="portal-top-actions">
         <div class="portal-date">{% now "D, j M Y" %}</div>
         <div class="portal-profile"><div class="portal-avatar">{% if user.get_full_name %}{{ user.get_full_name|slice:":1"|upper }}{% else %}{{ user.username|slice:":1"|upper }}{% endif %}</div><div><div class="portal-profile-name">{{ user.get_full_name|default:user.username }}</div><div class="portal-profile-role">{{ user.get_role_display }}</div></div></div>

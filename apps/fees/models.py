@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -15,6 +15,10 @@ MONEY_ZERO = Decimal("0.00")
 class FeeCharge(models.Model):
     class Category(models.TextChoices):
         MONTHLY = "monthly", "Monthly fee"
+        ADMISSION = "admission", "Admission fee"
+        ANNUAL = "annual", "Annual fund"
+        EXAM = "exam", "Exam fee"
+        LATE_FEE = "late_fee", "Late fee fine"
         LAB = "lab", "Lab charges"
         ACTIVITY = "activity", "Activity charges"
         OTHER = "other", "Other"
@@ -218,6 +222,7 @@ class StaffMember(models.Model):
 class Expense(models.Model):
     class Category(models.TextChoices):
         SALARY = "salary", "Salary"
+        ADVANCE = "advance", "Salary advance"
         UTILITIES = "utilities", "Utility bills"
         RENT = "rent", "Rent"
         SUPPLIES = "supplies", "Stationery & supplies"
@@ -290,3 +295,87 @@ class FeeReminder(models.Model):
 
     def __str__(self):
         return f"Reminder to {self.student} ({self.amount_due})"
+
+
+class FeeConcession(models.Model):
+    """A standing discount on a student's monthly tuition fee."""
+
+    student = models.OneToOneField(
+        "academics.Student", on_delete=models.CASCADE, related_name="fee_concession"
+    )
+    percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01")), MaxValueValidator(Decimal("100"))],
+        help_text="100 means the monthly fee is fully waived.",
+    )
+    reason = models.CharField(max_length=160, help_text="For example: sibling discount, staff child, need-based.")
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_fee_concessions",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(percent__gt=0) & models.Q(percent__lte=100),
+                name="fees_concession_percent_range",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.student}: {self.percent}% ({self.reason})"
+
+    def apply(self, amount):
+        """The fee after this concession, rounded to whole rupees."""
+        return (amount * (Decimal("100") - self.percent) / Decimal("100")).quantize(Decimal("1"))
+
+
+class StaffAttendance(models.Model):
+    class Status(models.TextChoices):
+        PRESENT = "present", "Present"
+        ABSENT = "absent", "Absent"
+        LATE = "late", "Late"
+        LEAVE = "leave", "On leave"
+
+    staff = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name="attendance")
+    date = models.DateField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PRESENT)
+    note = models.CharField(max_length=160, blank=True, help_text="Reason for leave or absence.")
+    marked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-date", "staff__name")
+        constraints = [
+            models.UniqueConstraint(fields=("staff", "date"), name="fees_one_staff_attendance_per_day")
+        ]
+
+    def __str__(self):
+        return f"{self.staff.name} {self.date}: {self.get_status_display()}"
+
+
+class SalarySlip(models.Model):
+    """The breakdown behind one salary payment (the Expense holds the net amount paid)."""
+
+    expense = models.OneToOneField(Expense, on_delete=models.CASCADE, related_name="slip")
+    basic = models.DecimalField(max_digits=10, decimal_places=2)
+    allowance = models.DecimalField(max_digits=10, decimal_places=2, default=MONEY_ZERO)
+    absent_days = models.PositiveSmallIntegerField(default=0)
+    absence_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=MONEY_ZERO)
+    advance_recovered = models.DecimalField(max_digits=10, decimal_places=2, default=MONEY_ZERO)
+    other_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=MONEY_ZERO)
+    note = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return f"Slip for {self.expense}"
+
+    @property
+    def total_deductions(self):
+        return self.absence_deduction + self.advance_recovered + self.other_deduction

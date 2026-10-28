@@ -1,0 +1,57 @@
+{% extends "fees/base.html" %}
+{% load humanize_rs %}
+{% block section_title %}Daily report{% endblock %}
+{% block content %}
+<style>@media print { .no-print { display: none !important; } .panel-card, .kpi { box-shadow: none; } }</style>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <a class="btn btn-sm btn-outline-secondary no-print" href="?date={{ previous_day|date:'Y-m-d' }}" aria-label="Previous day">‹</a>
+    <h1 class="h3 mb-0">Daily cash report · {{ day|date:"D, j F Y" }}</h1>
+    {% if next_day %}<a class="btn btn-sm btn-outline-secondary no-print" href="?date={{ next_day|date:'Y-m-d' }}" aria-label="Next day">›</a>{% endif %}
+  </div>
+  <div class="d-flex gap-2 no-print">
+    <form method="get"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Choose a day"></form>
+    <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi good"><div class="kpi-label">Fee collected</div><div class="kpi-value money">{{ collected|rs }}</div><div class="kpi-note">{{ payments|length }} receipt{{ payments|length|pluralize }}</div></div>
+  <div class="kpi bad"><div class="kpi-label">Spent</div><div class="kpi-value money">{{ spent|rs }}</div><div class="kpi-note">expenses recorded this day</div></div>
+  <div class="kpi"><div class="kpi-label">Net for the day</div><div class="kpi-value money">{{ cash_in_hand|rs }}</div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><section class="panel-card h-100"><h2>By payment method</h2>
+    {% for method, total in by_method %}<div class="d-flex justify-content-between py-1{% if not forloop.first %} border-top{% endif %}"><span>{{ method }}</span><strong class="money">{{ total|rs }}</strong></div>{% empty %}<p class="text-muted mb-0">No payments.</p>{% endfor %}
+  </section></div>
+  <div class="col-md-6"><section class="panel-card h-100"><h2>Received by</h2>
+    {% for person, total in by_person %}<div class="d-flex justify-content-between py-1{% if not forloop.first %} border-top{% endif %}"><span>{{ person }}</span><strong class="money">{{ total|rs }}</strong></div>{% empty %}<p class="text-muted mb-0">No payments.</p>{% endfor %}
+  </section></div>
+</div>
+
+<section class="panel-card">
+  <h2>Receipts</h2>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Receipt</th><th>Student</th><th>Class</th><th>Method</th><th>Received by</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+        {% for payment in payments %}
+          <tr>
+            <td><a href="{% url 'fees:receipt' payment.pk %}" class="font-monospace small">{{ payment.receipt_reference|truncatechars:16 }}</a></td>
+            <td>{{ payment.student.first_name }} {{ payment.student.last_name }}</td>
+            <td>{% if payment.enrollment %}{{ payment.enrollment.classroom.name }} {{ payment.enrollment.classroom.section }}{% else %}—{% endif %}</td>
+            <td>{{ payment.get_method_display }}</td>
+            <td>{{ payment.received_by.get_full_name|default:"—" }}</td>
+            <td class="text-end money">{{ payment.amount|rs }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No fee received on this day.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if payments %}<tfoot><tr><th colspan="5">Total</th><th class="text-end money">{{ collected|rs }}</th></tr></tfoot>{% endif %}
+    </table>
+  </div>
+  <div class="d-none d-print-flex justify-content-between mt-5 small"><span>Counted by: ____________________</span><span>Signature: ____________________</span></div>
+</section>
+{% endblock %}

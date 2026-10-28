@@ -1,0 +1,10 @@
+{% extends "student_portal/base.html" %}
+{% block title %}Result card · {{ exam.name }}{% endblock %}
+{% block content %}
+{% include "assessments/_result_card_style.html" %}
+<div class="row no-print" style="justify-content:space-between;margin-bottom:16px">
+  <a class="label" href="{% url 'student_portal:exams' %}">‹ All exams</a>
+  <button class="btn btn-primary" type="button" onclick="window.print()">Print</button>
+</div>
+{% include "assessments/_result_card.html" %}
+{% endblock %}

@@ -258,8 +258,8 @@ class OfficeToolsTests(TestCase):
 
         member = StaffMember.objects.create(name="Guard", designation="Guard", monthly_salary=Decimal("25000.00"))
         self.client.force_login(self.office_user)
-        self.client.post(reverse("fees:staff-pay", args=[member.pk]))
-        self.client.post(reverse("fees:staff-pay", args=[member.pk]))
+        self.client.post(reverse("fees:staff-pay", args=[member.pk]), {"basic": "25000"})
+        self.client.post(reverse("fees:staff-pay", args=[member.pk]), {"basic": "25000"})
         salary = Expense.objects.get(staff=member)
         self.assertEqual(salary.amount, Decimal("25000.00"))
         self.assertEqual(salary.salary_month, self.today.replace(day=1))
@@ -307,13 +307,13 @@ class MonthlyFeeAndReceiptTests(TestCase):
     def test_generate_bills_each_student_once_per_month(self):
         from apps.fees.services import generate_monthly_fees
 
-        created, skipped, total = generate_monthly_fees(
+        created, skipped, total, _waived = generate_monthly_fees(
             self.month, 10, {self.class_a.pk: Decimal("2500.00")}, self.office_user
         )
         self.assertEqual((created, skipped, total), (2, 0, Decimal("5000.00")))
         self.assertFalse(FeeCharge.objects.filter(student=self.students[2]).exists())
 
-        created, skipped, _ = generate_monthly_fees(
+        created, skipped, _, _waived = generate_monthly_fees(
             self.month, 10, {self.class_a.pk: Decimal("2500.00"), self.class_b.pk: Decimal("3000.00")}, self.office_user
         )
         self.assertEqual((created, skipped), (1, 2))

@@ -8,17 +8,7 @@
 </div>
 <p class="text-muted mb-3">Parents sign in with their phone number and see their child's homework, attendance, results and fees. Brothers and sisters with the same guardian phone share one login.</p>
 
-{% if credentials %}
-  <div class="panel-card mb-3" style="border-color:#9fd8b9;background:#f3fbf6">
-    <h2>Login ready for {{ credentials.student }}'s parent</h2>
-    <p class="mb-2">Share these details now — the password is shown only once.</p>
-    <div class="d-flex flex-wrap gap-4 mb-3">
-      <div><div class="kpi-label">Username</div><div class="h5 mb-0 font-monospace">{{ credentials.username }}</div></div>
-      <div><div class="kpi-label">Password</div><div class="h5 mb-0 font-monospace">{{ credentials.password }}</div></div>
-    </div>
-    <a class="btn btn-success" href="{{ credentials.whatsapp }}" target="_blank" rel="noopener">Send on WhatsApp</a>
-  </div>
-{% endif %}
+{% include "accounts/_credentials.html" %}
 
 <div class="panel-card mb-3">
   <div class="filter-chips">

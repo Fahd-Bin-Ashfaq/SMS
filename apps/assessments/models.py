@@ -34,6 +34,9 @@ class Exam(models.Model):
     )
     name = models.CharField(max_length=120)
     date = models.DateField(null=True, blank=True)
+    results_published = models.BooleanField(
+        default=False, help_text="Students and parents see result cards only after this is on."
+    )
 
     class Meta:
         ordering = ("-date", "name")
@@ -70,9 +73,12 @@ class ExamSubject(models.Model):
         Subject, on_delete=models.PROTECT, related_name="exam_subjects"
     )
     maximum_marks = models.DecimalField(max_digits=7, decimal_places=2)
+    paper_date = models.DateField(null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ("subject__name",)
+        ordering = ("paper_date", "start_time", "subject__name")
         constraints = [
             models.UniqueConstraint(
                 fields=("exam", "subject"), name="assess_exam_subject_uniq"
@@ -205,3 +211,23 @@ class MarkChange(models.Model):
 
 # Publicly useful alias for the domain term used in the project README.
 Mark = StudentMark
+
+
+class ResultRemark(models.Model):
+    """The class teacher's comment printed on a student's result card."""
+
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="remarks")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="result_remarks")
+    remarks = models.CharField(max_length=300)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("exam", "student"), name="assess_one_remark_per_student")
+        ]
+
+    def __str__(self):
+        return f"{self.student} — {self.exam}: {self.remarks}"

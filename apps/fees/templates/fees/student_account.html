@@ -1,35 +1,77 @@
 {% extends "fees/base.html" %}
+{% load humanize_rs %}
 {% block title %}Student fee account{% endblock %}
 {% block content %}
-<h1 class="h3">{{ student.first_name }} {{ student.last_name }}</h1>
-<p class="text-muted">Admission number: {{ student.admission_number }}</p>
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card card-body"><span class="text-muted">Total charged</span><strong>{{ totals.charged|floatformat:2 }}</strong></div></div>
-  <div class="col-md-4"><div class="card card-body"><span class="text-muted">Total paid</span><strong>{{ totals.paid|floatformat:2 }}</strong></div></div>
-  <div class="col-md-4"><div class="card card-body"><span class="text-muted">Outstanding</span><strong>{{ totals.outstanding|floatformat:2 }}</strong></div></div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+  <h1 class="h3 mb-0">{{ student.first_name }} {{ student.last_name }}</h1>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{% url 'fees:payment-create' %}?student={{ student.pk }}">Receive fee</a>
+    <a class="btn btn-outline-secondary" href="{% url 'fees:charge-create' %}">Add charge</a>
+  </div>
 </div>
-<div class="d-flex justify-content-between align-items-center">
-  <h2 class="h5">Charges</h2>
-  <a class="btn btn-sm btn-outline-primary" href="{% url 'fees:charge-create' %}">Add charge</a>
+<p class="text-muted">Admission number: {{ student.admission_number }}{% if student.guardian_name %} · Guardian: {{ student.guardian_name }}{% endif %}</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">Total charged</div><div class="kpi-value money">{{ totals.charged|rs }}</div></div>
+  <div class="kpi good"><div class="kpi-label">Total paid</div><div class="kpi-value money">{{ totals.paid|rs }}</div></div>
+  <div class="kpi {% if totals.outstanding > 0 %}bad{% endif %}"><div class="kpi-label">Balance</div><div class="kpi-value money">{{ totals.outstanding|rs }}</div><div class="kpi-note">including bills not yet due</div></div>
 </div>
-<table class="table">
-  <thead><tr><th>Description</th><th>Academic year</th><th>Due date</th><th>Amount</th></tr></thead>
-  <tbody>
-    {% for charge in charges %}
-      <tr><td>{{ charge.description }}</td><td>{{ charge.academic_year|default:"—" }}</td><td>{{ charge.due_date|default:"—" }}</td><td>{{ charge.amount|floatformat:2 }}</td></tr>
-    {% empty %}<tr><td colspan="4" class="text-muted">No charges recorded.</td></tr>{% endfor %}
-  </tbody>
-</table>
-<div class="d-flex justify-content-between align-items-center mt-4">
-  <h2 class="h5">Payments</h2>
-  <a class="btn btn-sm btn-outline-primary" href="{% url 'fees:payment-create' %}">Record payment</a>
-</div>
-<table class="table">
-  <thead><tr><th>Date</th><th>Receipt</th><th>Method</th><th>Amount</th></tr></thead>
-  <tbody>
-    {% for payment in payments %}
-      <tr><td>{{ payment.payment_date }}</td><td><a href="{% url 'fees:receipt' payment.pk %}">{{ payment.receipt_reference }}</a></td><td>{{ payment.get_method_display }}</td><td>{{ payment.amount|floatformat:2 }}</td></tr>
-    {% empty %}<tr><td colspan="4" class="text-muted">No payments recorded.</td></tr>{% endfor %}
-  </tbody>
-</table>
+
+<section class="panel-card mb-3">
+  <h2>Fee concession</h2>
+  {% if concession %}
+    <p class="mb-2"><span class="pill pill-paid">{{ concession.percent|floatformat:"-2" }}% off monthly fee</span> {{ concession.reason }}
+      <span class="small text-muted">· approved by {{ concession.approved_by.get_full_name|default:concession.approved_by|default:"—" }}, {{ concession.updated_at|date:"j M Y" }}</span></p>
+  {% else %}
+    <p class="text-muted mb-2">No concession. This student pays the full monthly fee.</p>
+  {% endif %}
+  {% if can_set_concession %}
+    <form method="post" action="{% url 'fees:concession' student.pk %}" class="row g-2 align-items-end" novalidate>
+      {% csrf_token %}
+      <div class="col-sm-3">
+        <label class="form-label" for="{{ concession_form.percent.id_for_label }}">{{ concession_form.percent.label }}</label>
+        <input type="number" name="percent" id="{{ concession_form.percent.id_for_label }}" min="1" max="100" step="0.01" value="{{ concession.percent|default_if_none:''|floatformat:'-2' }}">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="{{ concession_form.reason.id_for_label }}">Reason</label>
+        <input type="text" name="reason" id="{{ concession_form.reason.id_for_label }}" maxlength="160" value="{{ concession.reason|default:'' }}" placeholder="Sibling discount, staff child, need-based">
+      </div>
+      <div class="col-sm-3 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">{% if concession %}Update{% else %}Give concession{% endif %}</button>
+        {% if concession %}<button class="btn btn-outline-danger" type="submit" name="action" value="remove">Remove</button>{% endif %}
+      </div>
+    </form>
+    <div class="form-text">Applies to monthly fees added from now on. 100% means no monthly fee.</div>
+  {% else %}
+    <div class="form-text">Only the principal can give or change a concession.</div>
+  {% endif %}
+</section>
+
+<section class="panel-card mb-3">
+  <h2>Charges</h2>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Description</th><th>Type</th><th>Due date</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+        {% for charge in charges %}
+          <tr><td>{{ charge.description }}</td><td><span class="pill pill-muted">{{ charge.get_category_display }}</span></td><td>{{ charge.due_date|date:"j M Y"|default:"—" }}</td><td class="text-end money">{{ charge.amount|rs }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-muted">No charges recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel-card">
+  <h2>Payments</h2>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Date</th><th>Receipt</th><th>Method</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+        {% for payment in payments %}
+          <tr><td>{{ payment.payment_date|date:"j M Y" }}</td><td><a href="{% url 'fees:receipt' payment.pk %}">{{ payment.receipt_reference }}</a></td><td>{{ payment.get_method_display }}</td><td class="text-end money">{{ payment.amount|rs }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-muted">No payments recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

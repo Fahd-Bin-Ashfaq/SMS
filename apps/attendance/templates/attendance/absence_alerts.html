@@ -1,0 +1,53 @@
+{% extends "attendance/base.html" %}
+{% block section_title %}Absent alerts{% endblock %}
+{% block section_heading %}Absent alerts{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0">Absent &amp; late · {{ day|date:"D, j F Y" }}</h1>
+  <form method="get" class="d-flex gap-2">
+    {% if selected %}<input type="hidden" name="classroom" value="{{ selected.pk }}">{% endif %}
+    <input type="date" name="date" value="{{ day|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Choose a day">
+  </form>
+</div>
+<p class="text-muted mb-3">Tap <strong>Send on WhatsApp</strong> to open a ready message to the guardian, then press send in WhatsApp. {% if pending %}<strong>{{ pending }}</strong> not sent yet.{% endif %}</p>
+
+<div class="panel-card mb-3">
+  <div class="filter-chips">
+    <a class="{% if not selected %}active{% endif %}" href="?date={{ day|date:'Y-m-d' }}">All my classes</a>
+    {% for classroom in classrooms %}<a class="{% if selected == classroom %}active{% endif %}" href="?date={{ day|date:'Y-m-d' }}&classroom={{ classroom.pk }}">{{ classroom.name }} {{ classroom.section }}</a>{% endfor %}
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Student</th><th>Class</th><th>Status</th><th>Guardian</th><th class="text-end">Alert</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><strong>{{ row.student.first_name }} {{ row.student.last_name }}</strong><div class="small text-muted">{{ row.student.admission_number }}</div></td>
+            <td>{{ row.record.enrollment.classroom.name }} {{ row.record.enrollment.classroom.section }}</td>
+            <td>{% if row.record.status == "absent" %}<span class="pill pill-due">Absent</span>{% else %}<span class="pill" style="background:#fdf3dc;color:#8a5a00">Late</span>{% endif %}</td>
+            <td>{{ row.student.guardian_name|default:"—" }}<div class="small text-muted">{{ row.phone|default:"No phone" }}</div></td>
+            <td class="text-end">
+              {% if row.alert %}<span class="pill pill-paid">Sent {{ row.alert.sent_at|date:"g:i a" }}</span>{% endif %}
+              {% if row.can_send %}
+                <form method="post" action="{% url 'attendance:send-absence-alert' row.record.pk %}" target="_blank" class="d-inline" data-alert>
+                  {% csrf_token %}<button class="btn btn-sm {% if row.alert %}btn-outline-success{% else %}btn-success{% endif %}" type="submit">{% if row.alert %}Send again{% else %}Send on WhatsApp{% endif %}</button>
+                </form>
+              {% else %}<span class="small text-muted">No valid phone</span>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Nobody was marked absent or late on this day.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  document.querySelectorAll("[data-alert]").forEach(function (form) {
+    form.addEventListener("submit", function () { setTimeout(function () { window.location.reload(); }, 1500); });
+  });
+</script>
+{% endblock %}
